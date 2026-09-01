@@ -18,6 +18,10 @@ real WorkManager worker.
 Stable tags use semantic versions such as `v1.0.0`. Update `versionCode`,
 `versionName`, and `CHANGELOG.md` together. Protocol changes are versioned
 independently and must preserve old readers or introduce a new wire version.
+Every stable version also requires curated notes at
+`docs/releases/<version>.md`. The release workflow rejects tags that are not
+reachable from `main`, do not match the Android version, or lack either the
+changelog entry or curated notes.
 
 ## Signing
 
@@ -34,6 +38,12 @@ Back up the release key in the organization's credential system before
 publishing. Never replace it silently: Android treats a new key as a different
 publisher.
 
+Before configuring the durable key, run the `Release` workflow manually from
+`main`. Manual runs create a one-day ephemeral CI-only key, exercise the same
+minified APK/AAB build and metadata/signature checks, then discard the key and
+publish nothing. A manual run can never create a GitHub Release; only a pushed
+stable tag can restore the repository signing secrets and publish artifacts.
+
 The GitHub release workflow expects these repository secrets:
 
 - `ANDROID_RELEASE_KEYSTORE_BASE64`
@@ -42,8 +52,17 @@ The GitHub release workflow expects these repository secrets:
 - `ANDROID_RELEASE_KEY_PASSWORD`
 
 Pushing a stable tag such as `v1.0.0` then validates the tag against the app
-version, builds and verifies the signed APK/AAB, writes SHA-256 checksums, and
-publishes all three files to the GitHub release.
+version, builds and verifies the signed APK/AAB, inspects the final APK package
+metadata, writes SHA-256 checksums, creates GitHub/Sigstore build-provenance
+attestations, and publishes all three files to the GitHub release.
+
+After downloading a release, verify both its checksum and its origin:
+
+```bash
+sha256sum --check OpenOnion-Messages-v1.0.0-SHA256SUMS.txt
+gh attestation verify OpenOnion-Messages-v1.0.0.apk \
+  --repo openonion/openonion-messages-android
+```
 
 ## Release contents
 
