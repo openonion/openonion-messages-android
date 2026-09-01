@@ -12,7 +12,9 @@ ciphertext, retry state, and timestamps. The paired device credential is
 encrypted with Android Keystore. App backups are disabled.
 
 Queued ciphertext is deleted from the app database after `oo-api` confirms
-durable storage.
+durable storage. A small local receipt then associates the Android SMS row with
+its server ciphertext identifier so an owner-confirmed deletion can be applied
+to both copies. The receipt contains no sender or body.
 
 ## Data sent to oo-api
 
@@ -41,11 +43,18 @@ outbound SMS in v1.
 
 ## Control and deletion
 
+Deleting a message in Android asks for confirmation, removes the local SMS, and
+queues deletion of the corresponding device-scoped ciphertext from `oo-api`.
+The remote operation retries safely until confirmed; the UI shows outstanding
+encrypted changes. Messages that predate pairing or have not yet uploaded have
+no server copy to delete.
+
 The owner can disconnect in the app, which revokes the device credential and
-removes pending ciphertext for that pairing. The Agent can list and revoke any
-paired phone. Disconnecting does not delete messages already stored in Android
-or ciphertext already accepted by `oo-api`; the Agent can delete individual
-server ciphertext records with `delete_sms()` and account deletion follows the
-`oo-api` account policy.
+removes pending ciphertext for that pairing. Pending remote deletions must
+finish before disconnecting so the credential remains able to complete them.
+The Agent can list and revoke any paired phone. Disconnecting does not delete
+messages already stored in Android or ciphertext already accepted by `oo-api`;
+the Agent can also delete individual server ciphertext records with
+`delete_sms()` and account deletion follows the `oo-api` account policy.
 
 Questions or deletion requests: `privacy@openonion.ai`.

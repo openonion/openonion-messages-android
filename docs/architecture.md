@@ -45,6 +45,20 @@ and revoke devices independently.
    decrypts them locally with the project's private identity.
 8. An acknowledgement is written only after successful decryption.
 
+## Deletion flow
+
+After upload, Android stores a content-free receipt mapping the local SMS row
+to the server message identifier. An owner-confirmed delete records a durable
+local intent before touching Android's SMS provider. It then removes any
+not-yet-uploaded ciphertext, converts an upload receipt into a server deletion
+job, and removes the receipt in one Room transaction.
+
+WorkManager calls the device-authenticated deletion endpoint. The endpoint is
+scoped to the authenticated device and is idempotent: retrying an already
+completed deletion succeeds without revealing whether another device owns an
+identifier. A deletion intent surviving a process crash is reconciled on the
+next refresh before the inbox is shown.
+
 ## Delivery behavior
 
 Delivery is at-least-once. A random UUID remains stable across phone retries,

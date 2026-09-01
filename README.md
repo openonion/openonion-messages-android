@@ -12,7 +12,7 @@ ConnectOnion agent runtime. SMS content is always returned as untrusted data;
 receiving a message never authorizes an agent action.
 
 <p align="center">
-  <img src="docs/assets/openonion-messages-v1.png" width="360" alt="OpenOnion Messages Android inbox and Agent pairing screen">
+  <img src="docs/assets/openonion-messages-v1-connected.png" width="360" alt="OpenOnion Messages encrypted Agent inbox with synthetic SMS">
 </p>
 
 ## v1 capabilities
@@ -22,6 +22,7 @@ receiving a message never authorizes an agent action.
 - one-time, expiring Agent pairing links;
 - on-device libsodium sealed-box encryption to a ConnectOnion address;
 - encrypted offline queue with idempotent, at-least-once delivery;
+- owner-confirmed deletion from both Android and the server ciphertext inbox;
 - revocable device credentials protected by Android Keystore; and
 - Agent tools to create a pairing, read, wait for, acknowledge, and decrypt SMS.
 
@@ -45,6 +46,8 @@ SMS plaintext ── sealed box ──▶ ciphertext inbox ──▶ local priva
    queued, and uploaded when the network is available.
 4. The Agent calls `get_sms()` or `wait_for_sms()`; ConnectOnion fetches the
    ciphertext and decrypts it with that project's identity.
+5. Deleting a synced message in Android removes the local SMS immediately and
+   durably retries deletion of its device-scoped server ciphertext.
 
 See [Setup](docs/setup.md), [Architecture](docs/architecture.md), the frozen
 [v1 encryption protocol](docs/encryption-protocol.md), and the

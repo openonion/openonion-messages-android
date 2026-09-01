@@ -6,9 +6,10 @@ import android.app.role.RoleManager
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Telephony
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.core.content.ContextCompat
+import ai.openonion.messages.data.LocalDeletionIntent
 import ai.openonion.messages.network.PairingClaimRequest
 import ai.openonion.messages.network.PairingLink
 import ai.openonion.messages.protocol.SmsEncryptor
@@ -26,6 +27,7 @@ data class MainUiState(
     val hasSmsPermissions: Boolean = false,
     val pairedRecipient: String? = null,
     val pendingDeliveries: Int = 0,
+    val pendingDeletions: Int = 0,
     val messages: List<LocalSms> = emptyList(),
     val busy: Boolean = false,
     val error: String? = null,
@@ -44,6 +46,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refresh() {
         viewModelScope.launch {
+            recoverConfirmedLocalDeletions()
             val isDefault = isDefaultSmsApp()
             val messages = if (isDefault) runCatching { repository.latest() }.getOrDefault(emptyList()) else emptyList()
             mutableState.update {
@@ -52,6 +55,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     hasSmsPermissions = hasSmsPermissions(),
                     pairedRecipient = app.container.pairingStore.load()?.recipient,
                     pendingDeliveries = app.container.database.deliveryQueue().pendingCount(),
+                    pendingDeletions =
+                        app.container.database.deliveryQueue().pendingDeletionCount() +
+                        app.container.database.deliveryQueue().pendingLocalDeletionCount(),
                     messages = messages,
                 )
             }
@@ -98,6 +104,16 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun disconnect() {
         viewModelScope.launch {
             val credentials = app.container.pairingStore.load() ?: return@launch
+            if (
+                app.container.database.deliveryQueue().pendingDeletionCount() > 0 ||
+                app.container.database.deliveryQueue().pendingLocalDeletionCount() > 0
+            ) {
+                app.container.deliveryCoordinator.schedule()
+                mutableState.update {
+                    it.copy(error = "Finish pending server deletions before disconnecting this agent")
+                }
+                return@launch
+            }
             mutableState.update { it.copy(busy = true, error = null) }
             runCatching { app.container.api.revokeCurrentDevice(credentials) }
                 .onSuccess {
@@ -117,6 +133,42 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         it.copy(busy = false, error = error.message ?: "Could not disconnect this agent")
                     }
                 }
+        }
+    }
+
+    fun delete(message: LocalSms, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            mutableState.update { it.copy(busy = true, error = null) }
+            runCatching {
+                val queue = app.container.database.deliveryQueue()
+                queue.beginLocalDeletion(
+                    LocalDeletionIntent(message.id, System.currentTimeMillis()),
+                )
+                if (repository.exists(message.id) && !repository.delete(message.id)) {
+                    queue.cancelLocalDeletion(message.id)
+                    error("The local SMS could not be deleted")
+                }
+                queue.finishLocalDeletion(message.id, System.currentTimeMillis())
+                app.container.deliveryCoordinator.schedule()
+            }.onSuccess {
+                mutableState.update { it.copy(busy = false) }
+                refresh()
+                onSuccess()
+            }.onFailure { error ->
+                mutableState.update {
+                    it.copy(busy = false, error = error.message ?: "Could not delete message")
+                }
+            }
+        }
+    }
+
+    private suspend fun recoverConfirmedLocalDeletions() {
+        val queue = app.container.database.deliveryQueue()
+        queue.pendingLocalDeletions().forEach { intent ->
+            if (!repository.exists(intent.localSmsId) || repository.delete(intent.localSmsId)) {
+                queue.finishLocalDeletion(intent.localSmsId, System.currentTimeMillis())
+                app.container.deliveryCoordinator.schedule()
+            }
         }
     }
 

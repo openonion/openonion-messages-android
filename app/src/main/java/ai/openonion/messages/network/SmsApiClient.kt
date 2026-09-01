@@ -53,7 +53,10 @@ class SmsApiException(val code: String, message: String) : IOException(message)
 class SmsApiClient(
     baseUrl: String,
     private val client: OkHttpClient = OkHttpClient(),
-    private val json: Json = Json { ignoreUnknownKeys = true },
+    private val json: Json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    },
 ) {
     private val baseUrl = baseUrl.trimEnd('/')
 
@@ -92,6 +95,20 @@ class SmsApiClient(
         val response = client.newCall(
             Request.Builder()
                 .url(baseUrl + "/api/v1/sms/devices/current")
+                .delete()
+                .header("Authorization", "Bearer ${credentials.deviceToken}")
+                .build(),
+        ).execute()
+        response.use { requireSuccess(it.code) }
+    }
+
+    suspend fun deleteDeliveredMessage(
+        credentials: PairingCredentials,
+        serverMessageId: String,
+    ) = withContext(Dispatchers.IO) {
+        val response = client.newCall(
+            Request.Builder()
+                .url(baseUrl + "/api/v1/sms/device/messages/$serverMessageId")
                 .delete()
                 .header("Authorization", "Bearer ${credentials.deviceToken}")
                 .build(),

@@ -36,6 +36,11 @@ Returned dictionaries include `sender`, `body`, `received_at`, server metadata,
 and `trusted: False`. Acknowledgement records successful processing; it does not
 erase the local SMS or server ciphertext.
 
+To remove both copies, use the delete action beside a message in Android and
+confirm **Delete everywhere**. The local SMS is removed immediately; if the
+phone is offline, encrypted server deletion remains queued and retries when a
+network connection returns.
+
 ## 4. Disconnect or revoke
 
 Use **Disconnect agent** in Android to revoke that phone and remove its local
