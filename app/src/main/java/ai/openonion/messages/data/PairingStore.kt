@@ -18,6 +18,12 @@ data class PairingCredentials(
     val deviceToken: String,
 )
 
+data class PendingPairingActivation(
+    val claimToken: String,
+    val expiresAt: Long,
+    val confirmationCode: String,
+)
+
 /** Keeps the revocable device bearer token encrypted by an Android Keystore key. */
 class PairingStore(context: Context) {
     private val preferences = context.getSharedPreferences(FILE_NAME, Context.MODE_PRIVATE)
@@ -25,17 +31,7 @@ class PairingStore(context: Context) {
     fun load(): PairingCredentials? {
         val encoded = preferences.getString(KEY_CIPHERTEXT, null) ?: return null
         return try {
-            val blob = Base64.decode(encoded, Base64.NO_WRAP)
-            require(blob.size > IV_BYTES) { "Encrypted pairing data is truncated" }
-            val cipher = Cipher.getInstance(TRANSFORMATION)
-            cipher.init(
-                Cipher.DECRYPT_MODE,
-                loadOrCreateKey(),
-                GCMParameterSpec(GCM_TAG_BITS, blob.copyOfRange(0, IV_BYTES)),
-            )
-            val json = JSONObject(
-                cipher.doFinal(blob.copyOfRange(IV_BYTES, blob.size)).decodeToString(),
-            )
+            val json = decrypt(encoded)
             PairingCredentials(
                 recipient = json.getString("recipient"),
                 deviceId = json.getString("device_id"),
@@ -57,20 +53,79 @@ class PairingStore(context: Context) {
             .put("device_token", credentials.deviceToken)
             .toString()
             .encodeToByteArray()
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(Cipher.ENCRYPT_MODE, loadOrCreateKey())
-        val blob = cipher.iv + cipher.doFinal(plaintext)
         check(
             preferences.edit()
-                .putString(KEY_CIPHERTEXT, Base64.encodeToString(blob, Base64.NO_WRAP))
+                .putString(KEY_CIPHERTEXT, encrypt(plaintext))
                 .commit(),
         ) { "Could not persist pairing credentials" }
     }
 
+    fun loadPending(): PendingPairingActivation? {
+        val encoded = preferences.getString(KEY_PENDING_CIPHERTEXT, null) ?: return null
+        return try {
+            val json = decrypt(encoded)
+            PendingPairingActivation(
+                claimToken = json.getString("claim_token"),
+                expiresAt = json.getLong("expires_at"),
+                confirmationCode = json.getString("confirmation_code"),
+            )
+        } catch (_: GeneralSecurityException) {
+            clearUnreadablePendingCredential()
+            null
+        } catch (_: RuntimeException) {
+            clearUnreadablePendingCredential()
+            null
+        }
+    }
+
+    fun savePending(pending: PendingPairingActivation) {
+        val plaintext = JSONObject()
+            .put("claim_token", pending.claimToken)
+            .put("expires_at", pending.expiresAt)
+            .put("confirmation_code", pending.confirmationCode)
+            .toString()
+            .encodeToByteArray()
+        check(
+            preferences.edit()
+                .putString(KEY_PENDING_CIPHERTEXT, encrypt(plaintext))
+                .commit(),
+        ) { "Could not persist pending pairing" }
+    }
+
+    fun clearPending() {
+        check(preferences.edit().remove(KEY_PENDING_CIPHERTEXT).commit()) {
+            "Could not clear pending pairing"
+        }
+    }
+
     fun clear() {
-        check(preferences.edit().remove(KEY_CIPHERTEXT).commit()) {
+        check(
+            preferences.edit()
+                .remove(KEY_CIPHERTEXT)
+                .remove(KEY_PENDING_CIPHERTEXT)
+                .commit(),
+        ) {
             "Could not clear pairing credentials"
         }
+    }
+
+    private fun encrypt(plaintext: ByteArray): String {
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        cipher.init(Cipher.ENCRYPT_MODE, loadOrCreateKey())
+        val blob = cipher.iv + cipher.doFinal(plaintext)
+        return Base64.encodeToString(blob, Base64.NO_WRAP)
+    }
+
+    private fun decrypt(encoded: String): JSONObject {
+        val blob = Base64.decode(encoded, Base64.NO_WRAP)
+        require(blob.size > IV_BYTES) { "Encrypted pairing data is truncated" }
+        val cipher = Cipher.getInstance(TRANSFORMATION)
+        cipher.init(
+            Cipher.DECRYPT_MODE,
+            loadOrCreateKey(),
+            GCMParameterSpec(GCM_TAG_BITS, blob.copyOfRange(0, IV_BYTES)),
+        )
+        return JSONObject(cipher.doFinal(blob.copyOfRange(IV_BYTES, blob.size)).decodeToString())
     }
 
     @Synchronized
@@ -97,9 +152,14 @@ class PairingStore(context: Context) {
         preferences.edit().remove(KEY_CIPHERTEXT).commit()
     }
 
+    private fun clearUnreadablePendingCredential() {
+        preferences.edit().remove(KEY_PENDING_CIPHERTEXT).commit()
+    }
+
     private companion object {
         const val FILE_NAME = "pairing-credentials"
         const val KEY_CIPHERTEXT = "encrypted-pairing"
+        const val KEY_PENDING_CIPHERTEXT = "encrypted-pending-pairing"
         const val KEYSTORE_PROVIDER = "AndroidKeyStore"
         const val KEY_ALIAS = "openonion-messages-pairing-v1"
         const val TRANSFORMATION = "AES/GCM/NoPadding"

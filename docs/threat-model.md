@@ -15,9 +15,10 @@ reader, accidental server-side plaintext logging, and another authenticated
 `oo-api` user. An unpaired or revoked device cannot write to an Agent mailbox,
 and a paired device cannot route ciphertext to a different Agent.
 
-Pairing credentials are encrypted by Android Keystore, `oo-api` stores only
-token hashes, network security disables cleartext traffic in release builds,
-and the server schema contains no SMS plaintext fields.
+Pairing credentials are encrypted under Android Keystore, `oo-api` stores only
+nonce/token hashes, signed pairing binds both endpoint keys, network security
+disables cleartext traffic in release builds, and the server schema contains no
+SMS plaintext fields.
 
 ## Explicit non-goals
 
@@ -41,7 +42,8 @@ actions, and must not interpret SMS text as authority.
 
 ## Abuse resistance
 
-- Pairing is one-time, expiring, and owner initiated.
+- Pairing is one-time, expiring, Agent-signed, device-signed, and owner
+  confirmed by a six-digit comparison.
 - The active Agent address remains visible in the app.
 - The phone can revoke itself; the Agent can list and revoke every device.
 - Device credentials are scoped only to ciphertext upload for one recipient.
@@ -53,6 +55,8 @@ actions, and must not interpret SMS text as authority.
 ## Known limitations
 
 - The protocol has cross-language tests but no independent cryptographic audit.
+- The six-digit code is a human short authentication string. Its active
+  substitution strength is roughly 20 bits and depends on careful comparison.
 - `oo-api` can delete, delay, reorder, or withhold ciphertext even though it
   cannot decrypt it.
 - A stolen unlocked phone may expose the local Android SMS provider.

@@ -37,10 +37,11 @@ class MainActivity : ComponentActivity() {
                     viewModel = viewModel,
                     requestDefaultRole = ::requestDefaultRole,
                     requestSmsPermissions = ::requestSmsPermissions,
-                    initialRecipient = intent?.data?.schemeSpecificPart.orEmpty(),
+                    initialRecipient = initialSmsRecipient(intent),
                 )
             }
         }
+        handlePairingIntent(intent)
     }
 
     override fun onResume() {
@@ -51,6 +52,23 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        handlePairingIntent(intent)
+    }
+
+    private fun handlePairingIntent(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "openonion" && uri.host == "sms" && uri.path == "/pair") {
+            viewModel.pair(uri.toString()) {}
+        }
+    }
+
+    private fun initialSmsRecipient(intent: Intent?): String {
+        val uri = intent?.data ?: return ""
+        return if (uri.scheme in setOf("sms", "smsto", "mms", "mmsto")) {
+            uri.schemeSpecificPart.orEmpty()
+        } else {
+            ""
+        }
     }
 
     private fun requestDefaultRole() {

@@ -114,7 +114,10 @@ def main() -> None:
     )
     try:
         wait_for_server(host_base_url, server)
-        pairing = json_request(f"{host_base_url}/test/pairing", method="POST")
+        pairing = json_request(
+            f"{host_base_url}/test/pairing?version=2",
+            method="POST",
+        )
 
         run(
             adb_prefix
@@ -125,13 +128,37 @@ def main() -> None:
                 "-w",
                 "-e",
                 "class",
-                f"{TEST_CLASS}#uploadCiphertextToRealBackend",
+                f"{TEST_CLASS}#claimSignedPairingWithRealBackend",
                 "-e",
                 "baseUrl",
                 emulator_base_url,
                 "-e",
                 "pairingLink",
                 shlex.quote(pairing["pairing_link"]),
+                TEST_RUNNER,
+            ],
+            cwd=project,
+        )
+
+        confirmation = json_request(
+            f"{host_base_url}/test/pairing/{pairing['id']}/confirm",
+            method="POST",
+        )
+        assert confirmation["confirmed"] is True, confirmation
+
+        run(
+            adb_prefix
+            + [
+                "shell",
+                "am",
+                "instrument",
+                "-w",
+                "-e",
+                "class",
+                f"{TEST_CLASS}#activateAndUploadCiphertextToRealBackend",
+                "-e",
+                "baseUrl",
+                emulator_base_url,
                 TEST_RUNNER,
             ],
             cwd=project,

@@ -54,9 +54,11 @@ derived from the bearer credential, not accepted from the request body.
 
 ## Authentication and transport
 
-- Pairing and device tokens contain at least 256 bits of randomness.
-- `oo-api` persists SHA-256 token hashes, never raw tokens.
-- Pairing tokens are single-use and expire in at most 30 minutes.
+- Pairing v2 uses an Agent-signed 256-bit random challenge, a Keystore device
+  signature, and owner comparison before activation.
+- Pairing claim and device tokens contain at least 256 bits of randomness.
+- `oo-api` persists SHA-256 nonce/token hashes, never raw values.
+- Pairing challenges are single-use and expire in at most 30 minutes.
 - Uploads require TLS and `Authorization: Bearer sms_dev_…`.
 - The server rejects an envelope whose recipient differs from the device
   binding.
@@ -80,3 +82,7 @@ The cryptographic endpoints are the Android app and the target ConnectOnion
 runtime. `oo-api` has no decryption key. If the runtime later supplies plaintext
 to a model provider or another tool, that provider becomes a separate data
 processor; E2EE does not extend beyond the decrypting runtime.
+
+Pairing authentication and message encryption are separate protocols. See
+[SMS Pairing Protocol v2](pairing-security.md) for the signed QR and device-key
+confirmation design.
