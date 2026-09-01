@@ -20,17 +20,17 @@ cannot see metadata; it receives the routing metadata documented in PRIVACY.md.
 
 ## Master mark and lockup
 
-The lavender onion in
+The green onion in
 `app/src/main/res/drawable-nodpi/openonion_mark_transparent.png` is the shared
 OpenOnion master mark and the sole approved product mark. It must not be
-redrawn, recolored, rotated, cropped, outlined, stretched, given a drop shadow,
+redrawn, rotated, cropped, outlined, stretched, given a drop shadow,
 or combined with a second SMS-specific logo.
 
-- Minimum digital size: 32 dp; preferred app-bar size: 44 dp.
+- Minimum digital size: 32 dp; preferred app-bar size: 36 dp.
 - Clear space: at least one quarter of the mark width on every side.
-- Preferred background: Warm Paper or white. On dark surfaces, retain the
+- Preferred background: white or Paper. On dark surfaces, retain the
   original mark and confirm sufficient separation visually.
-- The in-app lockup places the mark left of the two-line `OPENONION` / `Messages`
+- The in-app lockup places the mark left of the two-line `OpenOnion` / `MESSAGES`
   wordmark. Do not reproduce the wordmark inside the image asset.
 - Notification and action icons are functional symbols, never substitute logos.
 
@@ -41,26 +41,26 @@ needed to avoid user confusion.
 
 ## Color
 
-These hexadecimal values are canonical. Brand lavender identifies OpenOnion;
-signal orange is a restrained accent, not a large background color.
+OpenOnion uses one chromatic family: green. White and black create the product's
+structure; green signals identity, action, privacy, and live state. Neutral
+grays may be made only by mixing black and white. Purple, lavender, orange,
+blue, and unrelated semantic hues are not part of this product.
 
 | Token | Hex | Use |
 |---|---:|---|
-| Ink | `#1B1820` | Primary text and high-contrast content |
-| Warm Paper | `#FBF9F5` | Default light background |
-| Paper Surface | `#FFFFFF` | Cards and dialogs |
-| Onion Lavender | `#B9A6E9` | Master mark, supporting highlights |
-| Lavender Soft | `#F0EBFA` | Setup indicators and quiet surfaces |
-| Onion Purple | `#674F9C` | Primary actions and links |
-| Purple Deep | `#35274B` | Active encrypted-inbox surface |
-| Signal Orange | `#E95B2A` | Unread and exceptional attention cues |
-| Secure Green | `#267454` | Confirmed private/complete state only |
-| Hairline | `#E8E2EA` | Borders and dividers |
-| Muted Ink | `#69636F` | Secondary text |
+| OpenOnion Green | `#087443` | Primary actions, brand mark, live state |
+| Bright Green | `#19B86B` | Small highlights on black surfaces |
+| Soft Green | `#E8F7EF` | Quiet state containers and setup steps |
+| OpenOnion Black | `#101411` | Primary text and connected-state surface |
+| OpenOnion White | `#FFFFFF` | Cards, dialogs, and content on black |
+| Paper | `#F7F9F7` | Default light background |
+| Muted Ink | `#5D665F` | Secondary text |
+| Hairline | `#DCE3DE` | Borders and dividers |
 
-Dark mode uses `#151219` for the background, `#211C28` for surfaces,
-`#2A2432` for raised surfaces, and `#F8F4FA` for primary content. Color must
-never be the only way an error, completion, or privacy state is communicated.
+Dark mode uses `#090B0A` for the background, `#131715` for surfaces,
+`#1B211D` for raised surfaces, and `#F7FAF8` for primary content. Error and
+destructive states use explicit words and confirmation—not an off-brand red.
+Color must never be the only way a state is communicated.
 
 ## Typography
 
@@ -87,9 +87,9 @@ cards. The standard corner radii are 8, 12, 18, 24, and 30 dp.
 - Show exactly one primary setup action at a time.
 - Primary buttons are full width and at least 52 dp high.
 - All interactive targets are at least 48×48 dp.
-- The active encrypted state uses Purple Deep, a lock symbol, explicit text,
-  and a green `PRIVATE` label. Green never promises that the device itself is
-  uncompromised.
+- The active encrypted state uses OpenOnion Black, a green lock, explicit text,
+  and an outlined green `ON` state. Green never promises that the device itself
+  is uncompromised.
 - Destructive actions require a confirmation that names both deletion targets:
   the phone and Agent inbox.
 - Borders and small elevation separate surfaces; avoid decorative gradients,

@@ -1,18 +1,22 @@
 package ai.openonion.messages.ui
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -56,10 +60,10 @@ import ai.openonion.messages.MainUiState
 import ai.openonion.messages.MainViewModel
 import ai.openonion.messages.R
 import ai.openonion.messages.sms.LocalSms
-import ai.openonion.messages.ui.theme.OnionLavender
-import ai.openonion.messages.ui.theme.OnionLavenderSoft
-import ai.openonion.messages.ui.theme.OnionPurpleDeep
-import ai.openonion.messages.ui.theme.SecureGreen
+import ai.openonion.messages.ui.theme.OpenOnionBlack
+import ai.openonion.messages.ui.theme.OpenOnionGreen
+import ai.openonion.messages.ui.theme.OpenOnionGreenBright
+import ai.openonion.messages.ui.theme.OpenOnionGreenSoft
 import java.text.DateFormat
 import java.util.Date
 
@@ -191,18 +195,23 @@ private fun BrandTopBar() {
                     painter = painterResource(R.drawable.openonion_mark_transparent),
                     contentDescription = "OpenOnion",
                     contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(44.dp),
+                    modifier = Modifier.size(36.dp),
                 )
-                Spacer(Modifier.size(12.dp))
+                Spacer(Modifier.size(10.dp))
                 Column {
                     Text(
-                        text = "OPENONION",
+                        text = "OpenOnion",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onBackground,
+                    )
+                    Text(
+                        text = "MESSAGES",
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.8.sp,
+                        letterSpacing = 1.4.sp,
                         color = MaterialTheme.colorScheme.primary,
                     )
-                    Text(text = "Messages", style = MaterialTheme.typography.titleLarge)
                 }
             }
         },
@@ -223,17 +232,17 @@ private fun SetupCard(stage: SetupStage, busy: Boolean, onPrimaryAction: () -> U
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Your private Agent inbox", style = MaterialTheme.typography.headlineMedium)
+                Text("Set up your private inbox", style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    "Read SMS on this phone and share only encrypted copies with the Agent you choose.",
+                    "Your messages stay readable on this phone. Only encrypted copies sync to the Agent you choose.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SetupStep("Make Messages the default SMS app", stage.ordinal > SetupStage.DEFAULT_APP.ordinal)
-                SetupStep("Allow SMS access on this phone", stage.ordinal > SetupStage.PERMISSIONS.ordinal)
-                SetupStep("Connect one Agent with a private link", stage.ordinal > SetupStage.PAIRING.ordinal)
+                SetupStep(1, "Make Messages the default SMS app", stage.ordinal > SetupStage.DEFAULT_APP.ordinal)
+                SetupStep(2, "Allow SMS access on this phone", stage.ordinal > SetupStage.PERMISSIONS.ordinal)
+                SetupStep(3, "Connect one Agent with a private link", stage.ordinal > SetupStage.PAIRING.ordinal)
             }
             Button(
                 onClick = onPrimaryAction,
@@ -267,14 +276,14 @@ private fun SetupCard(stage: SetupStage, busy: Boolean, onPrimaryAction: () -> U
 }
 
 @Composable
-private fun SetupStep(label: String, complete: Boolean) {
+private fun SetupStep(number: Int, label: String, complete: Boolean) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .size(28.dp)
                 .clip(CircleShape)
-                .background(if (complete) SecureGreen else OnionLavenderSoft),
+                .background(if (complete) OpenOnionGreen else OpenOnionGreenSoft),
         ) {
             if (complete) {
                 Icon(
@@ -284,7 +293,12 @@ private fun SetupStep(label: String, complete: Boolean) {
                     tint = Color.White,
                 )
             } else {
-                Box(Modifier.size(8.dp).clip(CircleShape).background(OnionLavender))
+                Text(
+                    number.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = OpenOnionGreen,
+                )
             }
         }
         Spacer(Modifier.size(12.dp))
@@ -300,14 +314,14 @@ private fun SetupStep(label: String, complete: Boolean) {
 private fun ActiveAgentCard(state: MainUiState, onDisconnect: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = OnionPurpleDeep),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(containerColor = OpenOnionBlack),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
     ) {
-        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(44.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.12f)),
+                    modifier = Modifier.size(44.dp).clip(CircleShape).background(OpenOnionGreen),
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_lock),
@@ -318,17 +332,22 @@ private fun ActiveAgentCard(state: MainUiState, onDisconnect: () -> Unit) {
                 }
                 Spacer(Modifier.size(14.dp))
                 Column(Modifier.weight(1f)) {
-                    Text("Encrypted inbox active", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                    Text("Agent inbox connected", style = MaterialTheme.typography.titleLarge, color = Color.White)
                     Text(
-                        "New SMS sync automatically",
+                        "Encrypted sync is active",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = Color.White.copy(alpha = 0.72f),
+                        color = Color.White.copy(alpha = 0.70f),
                     )
                 }
-                SecurePill()
+                SyncStatusPill()
             }
-            HorizontalDivider(color = Color.White.copy(alpha = 0.14f))
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                "New SMS is encrypted on this phone before it is uploaded.",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color.White.copy(alpha = 0.88f),
+            )
+            HorizontalDivider(color = Color.White.copy(alpha = 0.16f))
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(
                     "CONNECTED AGENT",
                     style = MaterialTheme.typography.labelMedium,
@@ -344,7 +363,7 @@ private fun ActiveAgentCard(state: MainUiState, onDisconnect: () -> Unit) {
                     Text(
                         "${state.pendingDeliveries + state.pendingDeletions} encrypted change(s) waiting to sync",
                         style = MaterialTheme.typography.labelMedium,
-                        color = OnionLavender,
+                        color = OpenOnionGreenBright,
                     )
                 }
             }
@@ -359,14 +378,18 @@ private fun ActiveAgentCard(state: MainUiState, onDisconnect: () -> Unit) {
 }
 
 @Composable
-private fun SecurePill() {
-    Surface(color = SecureGreen, shape = CircleShape) {
+private fun SyncStatusPill() {
+    Surface(
+        color = OpenOnionGreen.copy(alpha = 0.22f),
+        shape = CircleShape,
+        border = BorderStroke(1.dp, OpenOnionGreenBright.copy(alpha = 0.72f)),
+    ) {
         Text(
-            "PRIVATE",
+            "ON",
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = OpenOnionGreenBright,
         )
     }
 }
@@ -400,58 +423,67 @@ private fun MessageCard(message: LocalSms, onDelete: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = CardDefaults.outlinedCardBorder(),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
-        Column(modifier = Modifier.padding(start = 18.dp, top = 16.dp, bottom = 16.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            message.address.ifBlank { "Unknown sender" },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = if (message.unread) FontWeight.Bold else FontWeight.SemiBold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                        if (message.unread) {
-                            Spacer(Modifier.size(8.dp))
-                            Box(Modifier.size(7.dp).clip(CircleShape).background(MaterialTheme.colorScheme.secondary))
+        Row(modifier = Modifier.height(IntrinsicSize.Min)) {
+            Box(
+                Modifier
+                    .width(4.dp)
+                    .fillMaxHeight()
+                    .background(if (message.unread) OpenOnionGreen else Color.Transparent),
+            )
+            Column(modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 16.dp)) {
+                Row(verticalAlignment = Alignment.Top) {
+                    Column(Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                message.address.ifBlank { "Unknown sender" },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = if (message.unread) FontWeight.Bold else FontWeight.SemiBold,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false),
+                            )
+                            if (message.unread) {
+                                Spacer(Modifier.size(8.dp))
+                                Box(Modifier.size(7.dp).clip(CircleShape).background(OpenOnionGreen))
+                            }
                         }
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
+                                .format(Date(message.timestamp)),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
-                    Spacer(Modifier.height(3.dp))
+                    IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_delete),
+                            contentDescription = "Delete message from phone and Agent inbox",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    message.body,
+                    maxLines = 5,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(end = 18.dp),
+                )
+                if (!message.incoming) {
+                    Spacer(Modifier.height(10.dp))
                     Text(
-                        DateFormat.getDateTimeInstance(DateFormat.MEDIUM, DateFormat.SHORT)
-                            .format(Date(message.timestamp)),
+                        "SENT FROM THIS PHONE",
                         style = MaterialTheme.typography.labelMedium,
+                        letterSpacing = 0.7.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                IconButton(onClick = onDelete, modifier = Modifier.size(48.dp)) {
-                    Icon(
-                        painter = painterResource(R.drawable.ic_delete),
-                        contentDescription = "Delete message from phone and Agent inbox",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Spacer(Modifier.height(10.dp))
-            Text(
-                message.body,
-                maxLines = 5,
-                overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(end = 18.dp),
-            )
-            if (!message.incoming) {
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    "SENT FROM THIS PHONE",
-                    style = MaterialTheme.typography.labelMedium,
-                    letterSpacing = 0.7.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
         }
     }

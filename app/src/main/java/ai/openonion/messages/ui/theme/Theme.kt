@@ -15,33 +15,48 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val LightColors = lightColorScheme(
-    primary = OnionPurple,
-    secondary = SignalOrange,
-    background = WarmPaper,
-    surface = PaperSurface,
-    surfaceVariant = OnionLavenderSoft,
+    primary = OpenOnionGreen,
+    onPrimary = OpenOnionWhite,
+    primaryContainer = OpenOnionGreenSoft,
+    onPrimaryContainer = OpenOnionBlack,
+    secondary = OpenOnionGreen,
+    onSecondary = OpenOnionWhite,
+    tertiary = OpenOnionGreen,
+    background = Paper,
+    surface = OpenOnionWhite,
+    surfaceVariant = OpenOnionGreenSoft,
     outline = Hairline,
-    tertiary = SecureGreen,
-    onBackground = Ink,
-    onSurface = Ink,
+    outlineVariant = Hairline,
+    onBackground = OpenOnionBlack,
+    onSurface = OpenOnionBlack,
     onSurfaceVariant = InkMuted,
-    onPrimary = PaperSurface,
-    onSecondary = PaperSurface,
+    error = OpenOnionBlack,
+    onError = OpenOnionWhite,
+    errorContainer = OpenOnionBlack,
+    onErrorContainer = OpenOnionWhite,
 )
 
-private val ColorDarkOutline = androidx.compose.ui.graphics.Color(0xFF49404F)
+private val ColorDarkOutline = androidx.compose.ui.graphics.Color(0xFF354039)
 
 private val DarkColors = darkColorScheme(
-    primary = OnionLavender,
-    secondary = SignalOrange,
-    tertiary = SecureGreen,
+    primary = OpenOnionGreenBright,
+    onPrimary = OpenOnionBlack,
+    primaryContainer = androidx.compose.ui.graphics.Color(0xFF103B27),
+    onPrimaryContainer = NightInk,
+    secondary = OpenOnionGreenBright,
+    tertiary = OpenOnionGreenBright,
     background = Night,
     surface = NightSurface,
     surfaceVariant = NightSurfaceRaised,
     outline = ColorDarkOutline,
+    outlineVariant = ColorDarkOutline,
     onBackground = NightInk,
     onSurface = NightInk,
     onSurfaceVariant = NightMuted,
+    error = NightInk,
+    onError = Night,
+    errorContainer = NightSurfaceRaised,
+    onErrorContainer = NightInk,
 )
 
 private val OpenOnionTypography = Typography(
