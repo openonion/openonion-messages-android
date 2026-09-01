@@ -21,5 +21,7 @@
 - Coordinated the Kotlin 2.3.21, Room 2.8.4, KSP 2.3.11, and
   kotlinx.serialization 1.11.0 maintenance updates so database schema tooling
   stays version-compatible.
+- Updated the LazySodium Android wrapper to 5.2.0 and JNA native bridge to
+  5.19.1 after cryptographic-vector and emulator verification.
 
 Known limitation: MMS and RCS are not supported in v1.
