@@ -16,5 +16,7 @@
   gate that proves Agent decryption and database deletion.
 - Published cross-language protocol vectors, privacy disclosure, threat model,
   and release documentation.
+- Published the project under Apache-2.0 with a NOTICE, contributor code of
+  conduct, support policy, and documented, attested GitHub downloads.
 
 Known limitation: MMS and RCS are not supported in v1.
