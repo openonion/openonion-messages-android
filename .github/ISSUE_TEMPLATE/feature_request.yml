@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose a change that respects the documented product and safety boundaries.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Read the product boundaries and threat model first. Remote Agent SMS
+        sending, automatic action based only on SMS content, and authentication
+        claims require separate product and security decisions.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem should this solve?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the visible user control and expected behavior.
+    validations:
+      required: true
+
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Security and privacy effects
+      description: Explain new data, permissions, trust boundaries, or Agent authority.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Confirmation
+      options:
+        - label: I reviewed docs/product-boundaries.md and docs/threat-model.md.
+          required: true
+        - label: This request contains no real SMS, credentials, keys, or personal data.
+          required: true
