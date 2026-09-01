@@ -114,7 +114,10 @@ def main() -> None:
     )
     try:
         wait_for_server(host_base_url, server)
-        pairing = json_request(f"{host_base_url}/test/pairing", method="POST")
+        pairing = json_request(
+            f"{host_base_url}/test/pairing?version=2",
+            method="POST",
+        )
 
         run(
             adb_prefix
