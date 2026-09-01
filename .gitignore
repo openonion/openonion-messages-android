@@ -1,0 +1,16 @@
+*.iml
+.gradle/
+.idea/
+.kotlin/
+local.properties
+build/
+**/build/
+captures/
+.externalNativeBuild/
+.cxx/
+*.jks
+*.keystore
+keystore.properties
+.tools/
+# Local source copy retained while the transparent Android mark is versioned.
+app/src/main/res/drawable-nodpi/openonion_mark.png

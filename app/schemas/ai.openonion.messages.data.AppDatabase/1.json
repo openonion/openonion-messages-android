@@ -1,0 +1,71 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "d3e0991754d1bea8c6aa1a577d7fdb07",
+    "entities": [
+      {
+        "tableName": "sms_delivery_queue",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`messageId` TEXT NOT NULL, `recipient` TEXT NOT NULL, `ciphertext` TEXT NOT NULL, `receivedAtEpochMillis` INTEGER NOT NULL, `state` TEXT NOT NULL, `attemptCount` INTEGER NOT NULL, `lastAttemptAtEpochMillis` INTEGER, `lastErrorCode` TEXT, PRIMARY KEY(`messageId`))",
+        "fields": [
+          {
+            "fieldPath": "messageId",
+            "columnName": "messageId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "recipient",
+            "columnName": "recipient",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ciphertext",
+            "columnName": "ciphertext",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "receivedAtEpochMillis",
+            "columnName": "receivedAtEpochMillis",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "state",
+            "columnName": "state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attemptCount",
+            "columnName": "attemptCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastAttemptAtEpochMillis",
+            "columnName": "lastAttemptAtEpochMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastErrorCode",
+            "columnName": "lastErrorCode",
+            "affinity": "TEXT"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "messageId"
+          ]
+        }
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd3e0991754d1bea8c6aa1a577d7fdb07')"
+    ]
+  }
+}

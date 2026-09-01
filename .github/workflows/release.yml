@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+      - uses: android-actions/setup-android@v3
+
+      - name: Validate tag and app version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 - "$RELEASE_TAG" <<'PY'
+          import pathlib
+          import re
+          import sys
+
+          tag = sys.argv[1]
+          if not re.fullmatch(r"v[0-9]+\.[0-9]+\.[0-9]+", tag):
+              raise SystemExit(f"Stable release tag required, got {tag!r}")
+          source = pathlib.Path("app/build.gradle.kts").read_text()
+          match = re.search(r'versionName = "([^"]+)"', source)
+          if not match or tag != f"v{match.group(1)}":
+              raise SystemExit(f"{tag} does not match Android versionName")
+          PY
+
+      - name: Restore signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_RELEASE_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64"
+          test -n "$STORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/openonion-messages-release.jks"
+          {
+            printf 'storeFile=%s\n' "$RUNNER_TEMP/openonion-messages-release.jks"
+            printf 'storePassword=%s\n' "$STORE_PASSWORD"
+            printf 'keyAlias=%s\n' "$KEY_ALIAS"
+            printf 'keyPassword=%s\n' "$KEY_PASSWORD"
+          } > keystore.properties
+
+      - name: Verify and build signed artifacts
+        run: ./gradlew test lint bundleRelease assembleRelease
+
+      - name: Verify signature and prepare release files
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/OpenOnion-Messages-${RELEASE_TAG}.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "dist/OpenOnion-Messages-${RELEASE_TAG}.aab"
+          apksigner verify --verbose --print-certs "dist/OpenOnion-Messages-${RELEASE_TAG}.apk"
+          jarsigner -verify "dist/OpenOnion-Messages-${RELEASE_TAG}.aab"
+          sha256sum dist/* > "dist/OpenOnion-Messages-${RELEASE_TAG}-SHA256SUMS.txt"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: >-
+          gh release create "$RELEASE_TAG"
+          dist/OpenOnion-Messages-${RELEASE_TAG}.apk
+          dist/OpenOnion-Messages-${RELEASE_TAG}.aab
+          dist/OpenOnion-Messages-${RELEASE_TAG}-SHA256SUMS.txt
+          --verify-tag
+          --generate-notes
+          --title "OpenOnion Messages ${RELEASE_TAG}"

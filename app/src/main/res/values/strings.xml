@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">OpenOnion Messages</string>
+    <string name="tagline">Encrypted SMS for you and your AI agents.</string>
+    <string name="notification_channel_messages">Incoming messages</string>
+    <string name="new_message">New message</string>
+    <string name="unlock_to_read">Unlock your phone to read it</string>
+    <string name="unknown_sender">Unknown sender</string>
+</resources>
