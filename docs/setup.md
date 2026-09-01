@@ -1,24 +1,26 @@
 # Setup
 
-## 1. Create a one-time Agent link
+## 1. Create a signed Agent QR
 
 From a ConnectOnion project that already has an identity and authentication:
 
-```python
-from connectonion import create_sms_pairing
-
-pairing = create_sms_pairing()
-print(pairing["pairing_link"])
+```bash
+co sms pair
 ```
 
-The link is a short-lived secret. Do not post it in an issue, log, screenshot,
-or shared chat.
+The command displays a short-lived QR and waits for the phone. Do not post the
+QR or link in an issue, log, screenshot, or shared chat.
 
 ## 2. Install and enable Android
 
 Install the signed APK from the GitHub release. Open the app, choose **Use as
 default SMS**, and approve only the Android permissions shown after the role
-request. Paste the pairing link under **Connect agent**.
+request. Scan the QR with the system camera and open it in OpenOnion Messages;
+pasting the link under **Connect agent** remains a fallback.
+
+Both the CLI and Android show six digits. Compare them before approving in the
+CLI. A mismatch means the phone key is not the key the Agent is about to trust:
+cancel, let the link expire, and create a new pairing.
 
 Pairing affects only SMS received afterward. The existing inbox stays local and
 is not uploaded.

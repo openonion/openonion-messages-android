@@ -29,6 +29,28 @@ class PairingLinkTest {
     }
 
     @Test
+    fun parsesSignedChallengeIntoTheCrossLanguageCanonicalGrant() {
+        val link = PairingLink.parse(
+            "openonion://sms/pair?v=2" +
+                "&id=11111111-2222-4333-8444-555555555555" +
+                "&recipient=$address" +
+                "&nonce=AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8" +
+                "&expires=1788250600" +
+                "&signature=${"11".repeat(64)}",
+        )
+
+        assertEquals(2, link.version)
+        assertEquals(
+            "{\"expires_at\":1788250600," +
+                "\"nonce\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8\"," +
+                "\"pairing_id\":\"11111111-2222-4333-8444-555555555555\"," +
+                "\"purpose\":\"openonion-sms-pair\"," +
+                "\"recipient\":\"$address\",\"version\":2}",
+            link.canonicalGrant(),
+        )
+    }
+
+    @Test
     fun addressIsExactlyAnEd25519PublicKey() {
         assertEquals(32, SmsEncryptor.parseAddress(address).size)
         assertThrows(IllegalArgumentException::class.java) {

@@ -19,7 +19,7 @@ receiving a message never authorizes an agent action.
 
 - local SMS inbox and human-initiated SMS sending;
 - Android default SMS role on Android 8.0 and later;
-- one-time, expiring Agent pairing links;
+- Agent-signed QR pairing with a Keystore device key and owner code comparison;
 - on-device libsodium sealed-box encryption to a ConnectOnion address;
 - encrypted offline queue with idempotent, at-least-once delivery;
 - owner-confirmed deletion from both Android and the server ciphertext inbox;
@@ -39,9 +39,9 @@ SMS plaintext ── sealed box ──▶ ciphertext inbox ──▶ local priva
       └──────────────────────── human-visible inbox ◀────────────────────┘
 ```
 
-1. In the Agent project, create a one-time link with
-   `create_sms_pairing()`.
-2. Install OpenOnion Messages, make it the default SMS app, and paste the link.
+1. In the Agent project, run `co sms pair` to display a signed, expiring QR.
+2. Install OpenOnion Messages, make it the default SMS app, scan the QR, and
+   compare the six digits shown on Android and in the terminal.
 3. New inbound SMS is stored in Android's SMS provider, encrypted on-device,
    queued, and uploaded when the network is available.
 4. The Agent calls `get_sms()` or `wait_for_sms()`; ConnectOnion fetches the
@@ -50,7 +50,8 @@ SMS plaintext ── sealed box ──▶ ciphertext inbox ──▶ local priva
    durably retries deletion of its device-scoped server ciphertext.
 
 See [Setup](docs/setup.md), [Architecture](docs/architecture.md), the frozen
-[v1 encryption protocol](docs/encryption-protocol.md), and the
+[v1 encryption protocol](docs/encryption-protocol.md), the
+[v2 pairing protocol](docs/pairing-security.md), and the
 [Threat model](docs/threat-model.md).
 
 ## Build and verify

@@ -10,6 +10,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import ai.openonion.messages.data.LocalDeletionIntent
+import ai.openonion.messages.data.PairingCredentials
+import ai.openonion.messages.data.PendingPairingActivation
 import ai.openonion.messages.network.PairingClaimRequest
 import ai.openonion.messages.network.PairingLink
 import ai.openonion.messages.protocol.SmsEncryptor
@@ -20,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class MainUiState(
@@ -28,6 +31,7 @@ data class MainUiState(
     val pairedRecipient: String? = null,
     val pendingDeliveries: Int = 0,
     val pendingDeletions: Int = 0,
+    val pairingConfirmationCode: String? = null,
     val messages: List<LocalSms> = emptyList(),
     val busy: Boolean = false,
     val error: String? = null,
@@ -38,6 +42,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = SmsRepository(application.contentResolver)
     private val sender = SmsSender(application)
     private val mutableState = MutableStateFlow(MainUiState())
+    private var pendingPairingPollStarted = false
     val state: StateFlow<MainUiState> = mutableState.asStateFlow()
 
     init {
@@ -47,6 +52,15 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun refresh() {
         viewModelScope.launch {
             recoverConfirmedLocalDeletions()
+            val now = System.currentTimeMillis() / 1000
+            val pendingPairing = app.container.pairingStore.loadPending()?.let { pending ->
+                if (pending.expiresAt > now) {
+                    pending
+                } else {
+                    app.container.pairingStore.clearPending()
+                    null
+                }
+            }
             val isDefault = isDefaultSmsApp()
             val messages = if (isDefault) runCatching { repository.latest() }.getOrDefault(emptyList()) else emptyList()
             mutableState.update {
@@ -54,12 +68,29 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     isDefaultSmsApp = isDefault,
                     hasSmsPermissions = hasSmsPermissions(),
                     pairedRecipient = app.container.pairingStore.load()?.recipient,
+                    pairingConfirmationCode = pendingPairing?.confirmationCode,
                     pendingDeliveries = app.container.database.deliveryQueue().pendingCount(),
                     pendingDeletions =
                         app.container.database.deliveryQueue().pendingDeletionCount() +
                         app.container.database.deliveryQueue().pendingLocalDeletionCount(),
                     messages = messages,
                 )
+            }
+            if (pendingPairing != null && !pendingPairingPollStarted) {
+                pendingPairingPollStarted = true
+                launch {
+                    runCatching {
+                        waitForSignedPairingActivation(
+                            pendingPairing.claimToken,
+                            pendingPairing.expiresAt,
+                        )
+                    }.onFailure { error ->
+                        mutableState.update {
+                            it.copy(error = error.message ?: "Could not finish connecting this agent")
+                        }
+                    }
+                    pendingPairingPollStarted = false
+                }
             }
         }
     }
@@ -70,24 +101,84 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             runCatching {
                 val link = PairingLink.parse(linkValue)
                 SmsEncryptor.parseAddress(link.recipient)
-                app.container.api.claimPairing(
-                    PairingClaimRequest(
-                        recipient = link.recipient,
-                        token = link.token,
-                        deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".trim(),
+                val deviceName = "${Build.MANUFACTURER} ${Build.MODEL}".trim()
+                if (link.isSignedChallenge) {
+                    val pending = app.container.api.claimSignedPairing(
+                        link = link,
+                        deviceIdentity = app.container.deviceIdentity,
+                        deviceName = deviceName,
                         appVersion = BuildConfig.VERSION_NAME,
-                    ),
-                )
-            }.onSuccess { credentials ->
-                app.container.pairingStore.save(credentials)
-                app.container.deliveryCoordinator.schedule()
-                mutableState.update { it.copy(busy = false, pairedRecipient = credentials.recipient) }
-                onSuccess()
+                    )
+                    app.container.pairingStore.savePending(
+                        PendingPairingActivation(
+                            claimToken = pending.claimToken,
+                            expiresAt = link.expiresAt,
+                            confirmationCode = pending.confirmationCode,
+                        ),
+                    )
+                    mutableState.update {
+                        it.copy(
+                            busy = false,
+                            pairingConfirmationCode = pending.confirmationCode,
+                        )
+                    }
+                    onSuccess()
+                    pendingPairingPollStarted = true
+                    try {
+                        waitForSignedPairingActivation(pending.claimToken, link.expiresAt)
+                    } finally {
+                        pendingPairingPollStarted = false
+                    }
+                } else {
+                    val credentials = app.container.api.claimPairing(
+                        PairingClaimRequest(
+                            recipient = link.recipient,
+                            token = link.token,
+                            deviceName = deviceName,
+                            appVersion = BuildConfig.VERSION_NAME,
+                        ),
+                    )
+                    activate(credentials)
+                    onSuccess()
+                }
             }.onFailure { error ->
                 mutableState.update {
-                    it.copy(busy = false, error = error.message ?: "Could not connect this agent")
+                    it.copy(
+                        busy = false,
+                        pairingConfirmationCode = null,
+                        error = error.message ?: "Could not connect this agent",
+                    )
                 }
             }
+        }
+    }
+
+    private suspend fun waitForSignedPairingActivation(claimToken: String, expiresAt: Long) {
+        while (System.currentTimeMillis() / 1000 < expiresAt) {
+            val response = app.container.api.activateSignedPairing(claimToken)
+            if (response.status == "active") {
+                val deviceId = requireNotNull(response.deviceId)
+                val deviceToken = requireNotNull(response.deviceToken)
+                val recipient = requireNotNull(response.recipient)
+                activate(PairingCredentials(recipient, deviceId, deviceToken))
+                return
+            }
+            delay(PAIRING_POLL_MILLIS)
+        }
+        app.container.pairingStore.clearPending()
+        error("Pairing challenge expired before the Agent approved this phone")
+    }
+
+    private fun activate(credentials: PairingCredentials) {
+        app.container.pairingStore.save(credentials)
+        app.container.pairingStore.clearPending()
+        app.container.deliveryCoordinator.schedule()
+        mutableState.update {
+            it.copy(
+                busy = false,
+                pairedRecipient = credentials.recipient,
+                pairingConfirmationCode = null,
+            )
         }
     }
 
@@ -189,6 +280,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private companion object {
+        const val PAIRING_POLL_MILLIS = 2_000L
         val REQUIRED_SMS_PERMISSIONS = listOf(
             Manifest.permission.RECEIVE_SMS,
             Manifest.permission.READ_SMS,

@@ -6,8 +6,9 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.work.ListenableWorker
 import androidx.work.testing.TestListenableWorkerBuilder
 import ai.openonion.messages.data.LocalDeletionIntent
+import ai.openonion.messages.data.PairingCredentials
+import ai.openonion.messages.data.PendingPairingActivation
 import ai.openonion.messages.data.QueuedDelivery
-import ai.openonion.messages.network.PairingClaimRequest
 import ai.openonion.messages.network.PairingLink
 import ai.openonion.messages.network.SmsApiClient
 import ai.openonion.messages.protocol.SmsEncryptor
@@ -24,7 +25,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class RealBackendSyncInstrumentedTest {
     @Test
-    fun uploadCiphertextToRealBackend() = runBlocking {
+    fun claimSignedPairingWithRealBackend() = runBlocking {
         val baseUrl = argumentOrSkip("baseUrl")
         val link = PairingLink.parse(argumentOrSkip("pairingLink"))
         val app = ApplicationProvider.getApplicationContext<MessagesApplication>()
@@ -32,15 +33,40 @@ class RealBackendSyncInstrumentedTest {
         app.container.database.clearAllTables()
         app.container.pairingStore.clear()
 
-        val credentials = app.container.api.claimPairing(
-            PairingClaimRequest(
-                recipient = link.recipient,
-                token = link.token,
-                deviceName = "OpenOnion E2E emulator",
-                appVersion = BuildConfig.VERSION_NAME,
+        val pending = app.container.api.claimSignedPairing(
+            link = link,
+            deviceIdentity = app.container.deviceIdentity,
+            deviceName = "OpenOnion E2E emulator",
+            appVersion = BuildConfig.VERSION_NAME,
+        )
+        app.container.pairingStore.savePending(
+            PendingPairingActivation(
+                claimToken = pending.claimToken,
+                expiresAt = link.expiresAt,
+                confirmationCode = pending.confirmationCode,
             ),
         )
+        assertEquals(
+            link.confirmationCode(app.container.deviceIdentity.publicKeyBase64),
+            pending.confirmationCode,
+        )
+    }
+
+    @Test
+    fun activateAndUploadCiphertextToRealBackend() = runBlocking {
+        val baseUrl = argumentOrSkip("baseUrl")
+        val app = ApplicationProvider.getApplicationContext<MessagesApplication>()
+        app.container = AppContainer(app, api = SmsApiClient(baseUrl))
+        val pending = requireNotNull(app.container.pairingStore.loadPending())
+        val activation = app.container.api.activateSignedPairing(pending.claimToken)
+        assertEquals("active", activation.status)
+        val credentials = PairingCredentials(
+            recipient = requireNotNull(activation.recipient),
+            deviceId = requireNotNull(activation.deviceId),
+            deviceToken = requireNotNull(activation.deviceToken),
+        )
         app.container.pairingStore.save(credentials)
+        app.container.pairingStore.clearPending()
         val encrypted = SmsEncryptor().encrypt(
             credentials.recipient,
             SmsPlaintext(

@@ -155,6 +155,7 @@ fun MessagesScreen(
             onPair = { link -> viewModel.pair(link) { showPairing = false } },
         )
     }
+    state.pairingConfirmationCode?.let { code -> PairingConfirmationDialog(code) }
     if (showComposer) {
         ComposerDialog(
             initialRecipient = initialRecipient,
@@ -562,6 +563,33 @@ private fun PairingDialog(busy: Boolean, onDismiss: () -> Unit, onPair: (String)
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+@Composable
+private fun PairingConfirmationDialog(code: String) {
+    AlertDialog(
+        onDismissRequest = {},
+        title = { Text("Verify this phone") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text("Confirm that the same six digits appear in the ConnectOnion terminal.")
+                Text(
+                    text = "${code.take(3)} ${code.drop(3)}",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    "The Agent must approve this exact device key before encrypted SMS can sync.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            Text("Waiting for Agent approval…", color = MaterialTheme.colorScheme.primary)
+        },
     )
 }
 

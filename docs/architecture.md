@@ -17,17 +17,23 @@ Agent runtime, and Agent-facing tools including `get_sms()` and
 
 ## Pairing
 
-1. An authenticated Agent creates a random, one-time pairing token valid for
-   60–1,800 seconds.
-2. The owner pastes its `openonion://sms/pair` link into the Android app.
-3. `oo-api` atomically consumes the token and returns a revocable device bearer
-   credential bound to exactly one Agent address.
-4. Android encrypts that credential at rest with an AES-256-GCM key held by
-   Android Keystore.
+1. The Agent creates a random challenge and signs its recipient, expiry, nonce,
+   and pairing ID with its Ed25519 identity.
+2. Android scans the `openonion://sms/pair` QR and verifies that signature
+   directly from the public key in the Agent address.
+3. Android creates a non-exportable P-256 key in Android Keystore and signs the
+   complete challenge when it claims the pairing.
+4. Android and the Agent independently derive and display the same six-digit
+   code from the signed grant and Android public key.
+5. After the owner compares the screens, the Agent signs that exact device key.
+   Only then does `oo-api` issue a revocable upload credential.
+6. Android encrypts pending and active credentials at rest with AES-256-GCM
+   under Android Keystore and resumes an interrupted pending activation.
 
-Only token hashes are stored by `oo-api`. Disconnecting from the app revokes the
-current device before removing the local credential. The Agent can also list
-and revoke devices independently.
+Only hashes of the random nonce and bearer tokens are stored by `oo-api`.
+Disconnecting from the app revokes the current device before removing the local
+credential. The Agent can also list and revoke devices independently. See
+[Pairing protocol v2](pairing-security.md) for canonical bytes and guarantees.
 
 ## Message flow
 
