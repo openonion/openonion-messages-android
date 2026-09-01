@@ -13,3 +13,9 @@ Before opening a pull request:
 Use four-space indentation for Kotlin continuation blocks, follow standard
 Kotlin naming conventions, and write comments that explain decisions rather
 than restating the code.
+
+GitHub issue forms require synthetic reproduction data and route suspected
+vulnerabilities to the private security policy. Pull requests must record
+security/privacy effects, compatibility requirements, and the verification
+scope. Dependabot checks Gradle and GitHub Actions dependencies monthly;
+security fixes may be opened sooner when GitHub detects a vulnerable version.

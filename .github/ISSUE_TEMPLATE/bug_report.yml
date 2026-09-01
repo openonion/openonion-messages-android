@@ -1,0 +1,76 @@
+name: Bug report
+description: Report a reproducible problem without exposing real SMS or credentials.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for helping improve OpenOnion Messages. Use synthetic SMS only.
+        Never include message bodies, phone numbers, pairing links, device tokens,
+        Agent private keys, signing material, or screenshots containing them.
+
+        Report suspected vulnerabilities privately through the Security Policy,
+        not through this form.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Default SMS role or permissions
+        - Local inbox or sending
+        - Agent pairing or revocation
+        - Encrypted synchronization
+        - Synchronized deletion
+        - User interface or accessibility
+        - Build, installation, or release
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Android device and version
+      placeholder: Pixel 8, Android 16
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use synthetic values and list the smallest repeatable sequence.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual result
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Safe diagnostics
+      description: Remove SMS content, addresses, credentials, and other personal data.
+
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed real SMS, phone numbers, Agent addresses, tokens, keys, and personal data.
+          required: true
+        - label: This is not a security vulnerability report.
+          required: true
