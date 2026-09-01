@@ -28,15 +28,15 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
           cache: gradle
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
 
       - name: Validate tag and app version
         id: release
@@ -138,7 +138,9 @@ jobs:
           test "$(apkanalyzer manifest min-sdk "$apk")" = "26"
           test "$(apkanalyzer manifest target-sdk "$apk")" = "36"
           test "$(apkanalyzer manifest debuggable "$apk")" = "false"
-          apksigner verify --verbose --print-certs "$apk"
+          apksigner_path="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner -print -quit)"
+          test -x "$apksigner_path"
+          "$apksigner_path" verify --verbose --print-certs "$apk"
           aab_report="$(jarsigner -verify -verbose -certs "$aab" 2>&1)"
           printf '%s\n' "$aab_report"
           grep -Fq 'jar verified.' <<< "$aab_report"
