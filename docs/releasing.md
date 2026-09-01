@@ -54,7 +54,7 @@ The GitHub release workflow expects these repository secrets:
 Pushing a stable tag such as `v1.0.0` then validates the tag against the app
 version, builds and verifies the signed APK/AAB, inspects the final APK package
 metadata, writes SHA-256 checksums, creates GitHub/Sigstore build-provenance
-attestations, and publishes all three files to the GitHub release.
+attestations, and publishes the verified assets to the GitHub release.
 
 After downloading a release, verify both its checksum and its origin:
 
@@ -66,7 +66,8 @@ gh attestation verify OpenOnion-Messages-v1.0.0.apk \
 
 ## Release contents
 
-- signed APK and SHA-256 checksum;
+- signed APK and AAB plus their SHA-256 checksum file;
+- Apache-2.0 `LICENSE` and project `NOTICE`;
 - source tag and generated GitHub source archives;
 - release notes including security/privacy changes and known limitations;
 - passing Android, oo-api, and ConnectOnion contract tests; and

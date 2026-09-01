@@ -18,5 +18,8 @@
   and release documentation.
 - Published the project under Apache-2.0 with a NOTICE, contributor code of
   conduct, support policy, and documented, attested GitHub downloads.
+- Coordinated the Kotlin 2.3.21, Room 2.8.4, KSP 2.3.11, and
+  kotlinx.serialization 1.11.0 maintenance updates so database schema tooling
+  stays version-compatible.
 
 Known limitation: MMS and RCS are not supported in v1.

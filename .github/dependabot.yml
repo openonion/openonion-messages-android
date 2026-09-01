@@ -6,6 +6,13 @@ updates:
     schedule:
       interval: monthly
     open-pull-requests-limit: 5
+    groups:
+      room-toolchain:
+        patterns:
+          - "androidx.room:*"
+          - "com.google.devtools.ksp"
+          - "org.jetbrains.kotlin.*"
+          - "org.jetbrains.kotlinx:kotlinx-serialization-*"
 
   - package-ecosystem: github-actions
     directory: /
