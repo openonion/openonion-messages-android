@@ -1,6 +1,7 @@
 package ai.openonion.messages.sms
 
 import android.content.ContentResolver
+import android.content.ContentUris
 import android.provider.Telephony
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -47,6 +48,24 @@ class SmsRepository(private val resolver: ContentResolver) {
                 }
             }
         } ?: emptyList()
+    }
+
+    suspend fun delete(localSmsId: Long): Boolean = withContext(Dispatchers.IO) {
+        resolver.delete(
+            ContentUris.withAppendedId(Telephony.Sms.CONTENT_URI, localSmsId),
+            null,
+            null,
+        ) == 1
+    }
+
+    suspend fun exists(localSmsId: Long): Boolean = withContext(Dispatchers.IO) {
+        resolver.query(
+            ContentUris.withAppendedId(Telephony.Sms.CONTENT_URI, localSmsId),
+            arrayOf(Telephony.Sms._ID),
+            null,
+            null,
+            null,
+        )?.use { it.moveToFirst() } == true
     }
 
     private companion object {

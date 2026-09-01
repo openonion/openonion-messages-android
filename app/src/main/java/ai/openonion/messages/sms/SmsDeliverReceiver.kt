@@ -38,13 +38,13 @@ class SmsDeliverReceiver : BroadcastReceiver() {
         val receivedAt = messages.minOf { it.timestampMillis }
         val subscriptionId = intent.getIntExtra("subscription", -1).takeIf { it >= 0 }
 
-        persistInSystemInbox(context, sender, body, receivedAt, subscriptionId)
+        val localSmsId = persistInSystemInbox(context, sender, body, receivedAt, subscriptionId)
         showPrivateNotification(context, sender)
 
         val pendingResult = goAsync()
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                queueForAgent(context, sender, body, receivedAt, subscriptionId)
+                queueForAgent(context, sender, body, receivedAt, subscriptionId, localSmsId)
             } finally {
                 pendingResult.finish()
             }
@@ -57,6 +57,7 @@ class SmsDeliverReceiver : BroadcastReceiver() {
         body: String,
         receivedAt: Long,
         subscriptionId: Int?,
+        localSmsId: Long?,
     ) {
         val container = (context.applicationContext as MessagesApplication).container
         val pairing = container.pairingStore.load() ?: return
@@ -72,6 +73,7 @@ class SmsDeliverReceiver : BroadcastReceiver() {
         container.deliveryCoordinator.enqueue(
             QueuedDelivery(
                 messageId = UUID.randomUUID().toString(),
+                localSmsId = localSmsId,
                 recipient = pairing.recipient,
                 ciphertext = encrypted.ciphertext,
                 receivedAtEpochMillis = receivedAt,
@@ -85,7 +87,7 @@ class SmsDeliverReceiver : BroadcastReceiver() {
         body: String,
         receivedAt: Long,
         subscriptionId: Int?,
-    ) {
+    ): Long? {
         val values = ContentValues().apply {
             put(Telephony.Sms.ADDRESS, sender)
             put(Telephony.Sms.BODY, body)
@@ -96,7 +98,9 @@ class SmsDeliverReceiver : BroadcastReceiver() {
             put(Telephony.Sms.TYPE, Telephony.Sms.MESSAGE_TYPE_INBOX)
             subscriptionId?.let { put(Telephony.Sms.SUBSCRIPTION_ID, it) }
         }
-        context.contentResolver.insert(Telephony.Sms.Inbox.CONTENT_URI, values)
+        return context.contentResolver.insert(Telephony.Sms.Inbox.CONTENT_URI, values)
+            ?.lastPathSegment
+            ?.toLongOrNull()
     }
 
     private fun showPrivateNotification(context: Context, sender: String) {

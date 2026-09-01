@@ -80,6 +80,9 @@ android {
     sourceSets.getByName("androidTest").assets.srcDir(
         rootProject.file("protocol/test-vectors"),
     )
+    sourceSets.getByName("androidTest").assets.srcDir(
+        rootProject.file("app/schemas"),
+    )
 }
 
 ksp {
@@ -113,6 +116,7 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.3.0")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.7.0")
     androidTestImplementation("androidx.work:work-testing:2.11.2")
+    androidTestImplementation("androidx.room:room-testing:2.7.1")
     androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
     androidTestImplementation(platform("androidx.compose:compose-bom:2026.06.01"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
