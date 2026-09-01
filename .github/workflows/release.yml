@@ -73,7 +73,13 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "dist/OpenOnion-Messages-${RELEASE_TAG}.apk"
           cp app/build/outputs/bundle/release/app-release.aab "dist/OpenOnion-Messages-${RELEASE_TAG}.aab"
           apksigner verify --verbose --print-certs "dist/OpenOnion-Messages-${RELEASE_TAG}.apk"
-          jarsigner -verify "dist/OpenOnion-Messages-${RELEASE_TAG}.aab"
+          aab_report="$(jarsigner -verify -verbose -certs "dist/OpenOnion-Messages-${RELEASE_TAG}.aab" 2>&1)"
+          printf '%s\n' "$aab_report"
+          grep -Fq 'jar verified.' <<< "$aab_report"
+          if grep -Fq 'jar is unsigned' <<< "$aab_report"; then
+            echo 'AAB is unsigned' >&2
+            exit 1
+          fi
           sha256sum dist/* > "dist/OpenOnion-Messages-${RELEASE_TAG}-SHA256SUMS.txt"
 
       - name: Publish GitHub release
