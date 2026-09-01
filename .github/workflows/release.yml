@@ -130,6 +130,8 @@ jobs:
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk "dist/OpenOnion-Messages-${RELEASE_TAG}.apk"
           cp app/build/outputs/bundle/release/app-release.aab "dist/OpenOnion-Messages-${RELEASE_TAG}.aab"
+          cp LICENSE dist/LICENSE
+          cp NOTICE dist/NOTICE
           apk="dist/OpenOnion-Messages-${RELEASE_TAG}.apk"
           aab="dist/OpenOnion-Messages-${RELEASE_TAG}.aab"
           test "$(apkanalyzer manifest application-id "$apk")" = "ai.openonion.messages"
@@ -176,6 +178,8 @@ jobs:
           dist/OpenOnion-Messages-${RELEASE_TAG}.apk
           dist/OpenOnion-Messages-${RELEASE_TAG}.aab
           dist/OpenOnion-Messages-${RELEASE_TAG}-SHA256SUMS.txt
+          dist/LICENSE
+          dist/NOTICE
           --verify-tag
           --notes-file "${{ steps.release.outputs.notes_path }}"
           --title "OpenOnion Messages ${RELEASE_TAG}"

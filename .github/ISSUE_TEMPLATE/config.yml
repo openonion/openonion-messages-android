@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
+  - name: Installation help and questions
+    url: https://github.com/openonion/openonion-messages-android/discussions
+    about: Ask the community without sharing real SMS, phone numbers, Agent addresses, or credentials.
   - name: Private security report
     url: https://github.com/openonion/openonion-messages-android/security/policy
     about: Report suspected vulnerabilities privately and never attach real SMS or credentials.

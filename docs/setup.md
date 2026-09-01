@@ -13,10 +13,16 @@ QR or link in an issue, log, screenshot, or shared chat.
 
 ## 2. Install and enable Android
 
-Install the signed APK from the GitHub release. Open the app, choose **Use as
-default SMS**, and approve only the Android permissions shown after the role
-request. Scan the QR with the system camera and open it in OpenOnion Messages;
-pasting the link under **Connect agent** remains a fallback.
+Download the signed APK from the
+[latest GitHub Release](https://github.com/openonion/openonion-messages-android/releases/latest).
+Use the APK, not the AAB, for direct installation. Verify the accompanying
+SHA-256 file and GitHub attestation as described in
+[Releasing](releasing.md), then install it on Android 8.0 or newer.
+
+Open the app, choose **Use as default SMS**, and approve only the Android
+permissions shown after the role request. Scan the QR with the system camera
+and open it in OpenOnion Messages; pasting the link under **Connect agent**
+remains a fallback.
 
 Both the CLI and Android show six digits. Compare them before approving in the
 CLI. A mismatch means the phone key is not the key the Agent is about to trust:
