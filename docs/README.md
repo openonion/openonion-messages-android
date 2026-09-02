@@ -17,6 +17,7 @@
 ## Maintainers
 
 - [Release process](releasing.md)
+- [Android release signing identity](release-signing-identity.md)
 - [1.0.0 release notes](releases/1.0.0.md)
 - [1.0.0 verification](releases/1.0.0-verification.md)
 

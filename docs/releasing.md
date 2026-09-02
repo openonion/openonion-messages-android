@@ -42,6 +42,9 @@ changelog entry or curated notes.
 
 ## Signing
 
+Read the [release signing identity and recovery runbook](release-signing-identity.md)
+before handling the durable publisher key.
+
 The repository never stores keystores or passwords. Configure release signing
 through a local `keystore.properties` file or CI secrets, sign the minified
 release APK/AAB with the durable OpenOnion Android release key, and verify it:
