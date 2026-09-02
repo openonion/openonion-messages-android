@@ -13,6 +13,23 @@ The connected suite requires an API 26+ emulator or device. It verifies both
 cross-language cryptographic vectors and an encrypted queue upload through the
 real WorkManager worker.
 
+Before publishing the first release, or changing encryption, pairing, or
+deletion behavior, also run the separate
+[real backend lifecycle gate](end-to-end-testing.md). The ordinary connected
+suite intentionally skips the three `RealBackendSyncInstrumentedTest` methods
+when backend arguments are absent; a green Android job alone is not proof of
+Android → PostgreSQL → Agent synchronization.
+
+```bash
+gh workflow run sms-android-e2e.yml --repo openonion/oo-api --ref main
+```
+
+Check the checkout SHAs in that job before using its results: it checks out
+the current default branches of the Android and ConnectOnion repositories.
+Record the exact Android candidate, successful Android CI, lifecycle gate, and
+release preflight runs in the version's verification report. The first-release
+report is [1.0.0 verification](releases/1.0.0-verification.md).
+
 ## Versioning
 
 Stable tags use semantic versions such as `v1.0.0`. Update `versionCode`,
