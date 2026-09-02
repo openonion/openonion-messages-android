@@ -18,6 +18,7 @@
 
 - [Release process](releasing.md)
 - [1.0.0 release notes](releases/1.0.0.md)
+- [1.0.0 verification](releases/1.0.0-verification.md)
 
 Repository-wide policies live in [Privacy](../PRIVACY.md),
 [Data Safety](../DATA_SAFETY.md), [Security](../SECURITY.md),
