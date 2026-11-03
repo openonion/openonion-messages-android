@@ -28,7 +28,7 @@ Download the signed APK from the [latest GitHub Release][latest-release]. The
 APK is the installable file for Android phones; the AAB is provided for store
 operators and cannot be sideloaded directly.
 
-- [OpenOnion Messages v1.0.0 release][v1-release]
+- [OpenOnion Messages v1.1.0 release][v1-release]
 - [Direct APK download][v1-apk]
 - [Checksums][v1-checksums]
 
@@ -112,6 +112,6 @@ covers source and release binaries; it does not grant rights to the OpenOnion
 name or logo beyond customary attribution.
 
 [latest-release]: https://github.com/openonion/openonion-messages-android/releases/latest
-[v1-release]: https://github.com/openonion/openonion-messages-android/releases/tag/v1.0.0
-[v1-apk]: https://github.com/openonion/openonion-messages-android/releases/download/v1.0.0/OpenOnion-Messages-v1.0.0.apk
-[v1-checksums]: https://github.com/openonion/openonion-messages-android/releases/download/v1.0.0/OpenOnion-Messages-v1.0.0-SHA256SUMS.txt
+[v1-release]: https://github.com/openonion/openonion-messages-android/releases/tag/v1.1.0
+[v1-apk]: https://github.com/openonion/openonion-messages-android/releases/download/v1.1.0/OpenOnion-Messages-v1.1.0.apk
+[v1-checksums]: https://github.com/openonion/openonion-messages-android/releases/download/v1.1.0/OpenOnion-Messages-v1.1.0-SHA256SUMS.txt

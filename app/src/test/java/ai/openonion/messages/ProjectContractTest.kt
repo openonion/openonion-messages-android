@@ -13,8 +13,8 @@ class ProjectContractTest {
 
     @Test
     fun stableReleaseVersionMatchesPublishedIdentity() {
-        assertEquals("1.0.0", BuildConfig.VERSION_NAME)
-        assertEquals(1, BuildConfig.VERSION_CODE)
+        assertEquals("1.1.0", BuildConfig.VERSION_NAME)
+        assertEquals(2, BuildConfig.VERSION_CODE)
     }
 
     @Test
@@ -34,12 +34,13 @@ class ProjectContractTest {
             "DATA_SAFETY.md",
             "docs/README.md",
             "docs/releases/1.0.0.md",
+            "docs/releases/1.1.0.md",
         )
 
         required.forEach { path ->
             assertTrue("Missing public project file: $path", File(root, path).isFile)
         }
         assertTrue(File(root, "LICENSE").readText().contains("Apache License"))
-        assertTrue(File(root, "README.md").readText().contains("releases/tag/v1.0.0"))
+        assertTrue(File(root, "README.md").readText().contains("releases/tag/v1.1.0"))
     }
 }

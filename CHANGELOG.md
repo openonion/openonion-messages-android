@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0 — 2026-11-03
 
 - Stop replacing the phone's texting app. The app now forwards alongside the
   default SMS app, so sending, contacts, MMS, group chats and RCS work as
