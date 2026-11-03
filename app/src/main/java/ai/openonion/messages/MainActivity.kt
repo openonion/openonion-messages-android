@@ -1,11 +1,10 @@
 package ai.openonion.messages
 
 import android.Manifest
-import android.app.role.RoleManager
 import android.content.Intent
-import android.os.Build
+import android.net.Uri
 import android.os.Bundle
-import android.provider.Telephony
+import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -18,14 +17,12 @@ class MainActivity : ComponentActivity() {
     private val viewModel: MainViewModel by viewModels()
 
     private val permissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions(),
-    ) { viewModel.refresh() }
-
-    private val roleLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult(),
-    ) {
-        if (isDefaultSmsApp()) requestSmsPermissions()
-        viewModel.refresh()
+        ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        // No dialog and no rationale means Android decided for the user: either
+        // "don't ask again", or restricted settings on a sideloaded install.
+        val canAskAgain = shouldShowRequestPermissionRationale(Manifest.permission.RECEIVE_SMS)
+        viewModel.onSmsPermissionResult(granted, canAskAgain)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,9 +32,9 @@ class MainActivity : ComponentActivity() {
             OpenOnionMessagesTheme {
                 MessagesScreen(
                     viewModel = viewModel,
-                    requestDefaultRole = ::requestDefaultRole,
-                    requestSmsPermissions = ::requestSmsPermissions,
-                    initialRecipient = initialSmsRecipient(intent),
+                    requestSmsPermission = { permissionLauncher.launch(Manifest.permission.RECEIVE_SMS) },
+                    openAppSettings = ::openAppSettings,
+                    openDefaultAppsSettings = { startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)) },
                 )
             }
         }
@@ -62,42 +59,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun initialSmsRecipient(intent: Intent?): String {
-        val uri = intent?.data ?: return ""
-        return if (uri.scheme in setOf("sms", "smsto", "mms", "mmsto")) {
-            uri.schemeSpecificPart.orEmpty()
-        } else {
-            ""
-        }
-    }
-
-    private fun requestDefaultRole() {
-        val request = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            getSystemService(RoleManager::class.java)
-                .createRequestRoleIntent(RoleManager.ROLE_SMS)
-        } else {
-            Intent(Telephony.Sms.Intents.ACTION_CHANGE_DEFAULT).putExtra(
-                Telephony.Sms.Intents.EXTRA_PACKAGE_NAME,
-                packageName,
-            )
-        }
-        roleLauncher.launch(request)
-    }
-
-    private fun isDefaultSmsApp(): Boolean =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            getSystemService(RoleManager::class.java).isRoleHeld(RoleManager.ROLE_SMS)
-        } else {
-            Telephony.Sms.getDefaultSmsPackage(this) == packageName
-        }
-
-    private fun requestSmsPermissions() {
-        val permissions = buildList {
-            add(Manifest.permission.RECEIVE_SMS)
-            add(Manifest.permission.READ_SMS)
-            add(Manifest.permission.SEND_SMS)
-            if (Build.VERSION.SDK_INT >= 33) add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        permissionLauncher.launch(permissions.toTypedArray())
+    private fun openAppSettings() {
+        startActivity(
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", packageName, null)),
+        )
     }
 }

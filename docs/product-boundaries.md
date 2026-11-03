@@ -1,14 +1,13 @@
 # Product Boundaries
 
-OpenOnion Messages is an Agent-readable SMS inbox, not an authentication
-product. Its job is to receive ordinary SMS on a phone, keep the owner-visible
-Android inbox useful, and deliver prospective messages privately to one chosen
-Agent.
+OpenOnion Messages is an SMS forwarder for one Agent, not a texting app and not
+an authentication product. Its job is to get a copy of each new SMS on a phone
+and deliver it privately to one chosen Agent, while the phone's own texting app
+keeps doing everything else.
 
 ## Included in v1
 
-- receive, display, and notify for SMS;
-- human-initiated outbound SMS required of a usable default handler;
+- receive a copy of each new SMS alongside the default texting app;
 - pair one Agent and show its address;
 - encrypt new inbound SMS on-device;
 - retry ciphertext delivery and let either endpoint revoke the device; and
@@ -16,7 +15,9 @@ Agent.
 
 ## Excluded from v1
 
+- replacing the default texting app;
 - MMS and RCS;
+- reading the existing inbox or sending SMS;
 - remote or autonomous Agent sending;
 - contact and call-log access;
 - retroactive upload of the existing inbox;

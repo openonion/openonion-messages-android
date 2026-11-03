@@ -49,7 +49,6 @@ actions, and must not interpret SMS text as authority.
 - Device credentials are scoped only to ciphertext upload for one recipient.
 - Upload size and protocol values are bounded; client message IDs are
   idempotent.
-- Notifications use Android's private lock-screen visibility.
 - No analytics or advertising SDK receives SMS-derived data.
 
 ## Known limitations
@@ -60,7 +59,6 @@ actions, and must not interpret SMS text as authority.
 - `oo-api` can delete, delay, reorder, or withhold ciphertext even though it
   cannot decrypt it.
 - A stolen unlocked phone may expose the local Android SMS provider.
-- v1 does not parse or preserve MMS. Owners who depend on MMS should not use it
-  as their default handler yet.
+- MMS and RCS messages are not forwarded.
 - Server ciphertext retention currently follows the `oo-api` account policy;
   acknowledgement is not deletion.
