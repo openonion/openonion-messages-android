@@ -1,5 +1,6 @@
 package ai.openonion.messages.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -68,9 +69,9 @@ import java.text.DateFormat
 import java.util.Date
 
 private enum class SetupStage {
+    PAIRING,
     DEFAULT_APP,
     PERMISSIONS,
-    PAIRING,
     READY,
 }
 
@@ -84,10 +85,50 @@ fun MessagesScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var showPairing by rememberSaveable { mutableStateOf(false) }
+    var showScanner by rememberSaveable { mutableStateOf(false) }
     var showComposer by rememberSaveable { mutableStateOf(initialRecipient.isNotBlank()) }
     var showDisconnect by rememberSaveable { mutableStateOf(false) }
     var deleteCandidate by remember { mutableStateOf<LocalSms?>(null) }
     val stage = state.setupStage()
+
+    if (showScanner) {
+        BackHandler { showScanner = false }
+        PairingScannerScreen(
+            onLink = { link ->
+                showScanner = false
+                viewModel.pair(link) {}
+            },
+            onPasteInstead = {
+                showScanner = false
+                showPairing = true
+            },
+            onClose = { showScanner = false },
+        )
+        return
+    }
+    state.pairingConfirmationCode?.let { code ->
+        VerifyOnComputerScreen(code = code, onCancel = viewModel::cancelPairing)
+        return
+    }
+    if (state.justConnected) {
+        ConnectedScreen(
+            agentAddress = state.pairedRecipient.orEmpty(),
+            nextLabel = when (stage) {
+                SetupStage.DEFAULT_APP -> "Turn on SMS forwarding"
+                SetupStage.PERMISSIONS -> "Allow SMS access"
+                else -> "Done"
+            },
+            onNext = {
+                viewModel.acknowledgeConnected()
+                when (stage) {
+                    SetupStage.DEFAULT_APP -> requestDefaultRole()
+                    SetupStage.PERMISSIONS -> requestSmsPermissions()
+                    else -> Unit
+                }
+            },
+        )
+        return
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -112,6 +153,12 @@ fun MessagesScreen(
             item {
                 if (stage == SetupStage.READY) {
                     ActiveAgentCard(state = state, onDisconnect = { showDisconnect = true })
+                } else if (stage == SetupStage.PAIRING) {
+                    PairingHero(
+                        busy = state.busy,
+                        onScan = { showScanner = true },
+                        onPaste = { showPairing = true },
+                    )
                 } else {
                     SetupCard(
                         stage = stage,
@@ -120,7 +167,7 @@ fun MessagesScreen(
                             when (stage) {
                                 SetupStage.DEFAULT_APP -> requestDefaultRole()
                                 SetupStage.PERMISSIONS -> requestSmsPermissions()
-                                SetupStage.PAIRING -> showPairing = true
+                                SetupStage.PAIRING -> showScanner = true
                                 SetupStage.READY -> Unit
                             }
                         },
@@ -155,7 +202,6 @@ fun MessagesScreen(
             onPair = { link -> viewModel.pair(link) { showPairing = false } },
         )
     }
-    state.pairingConfirmationCode?.let { code -> PairingConfirmationDialog(code) }
     if (showComposer) {
         ComposerDialog(
             initialRecipient = initialRecipient,
@@ -233,17 +279,17 @@ private fun SetupCard(stage: SetupStage, busy: Boolean, onPrimaryAction: () -> U
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Set up your private inbox", style = MaterialTheme.typography.headlineMedium)
+                Text("Turn on SMS forwarding", style = MaterialTheme.typography.headlineMedium)
                 Text(
-                    "Your messages stay readable on this phone. Only encrypted copies sync to the Agent you choose.",
+                    "Your texts stay readable on this phone. Only encrypted copies go to your Agent.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SetupStep(1, "Make Messages the default SMS app", stage.ordinal > SetupStage.DEFAULT_APP.ordinal)
-                SetupStep(2, "Allow SMS access on this phone", stage.ordinal > SetupStage.PERMISSIONS.ordinal)
-                SetupStep(3, "Connect one Agent with a private link", stage.ordinal > SetupStage.PAIRING.ordinal)
+                SetupStep(1, "Agent connected", stage.ordinal > SetupStage.PAIRING.ordinal)
+                SetupStep(2, "Make Messages the default SMS app", stage.ordinal > SetupStage.DEFAULT_APP.ordinal)
+                SetupStep(3, "Allow SMS access on this phone", stage.ordinal > SetupStage.PERMISSIONS.ordinal)
             }
             Button(
                 onClick = onPrimaryAction,
@@ -261,7 +307,7 @@ private fun SetupCard(stage: SetupStage, busy: Boolean, onPrimaryAction: () -> U
                         when (stage) {
                             SetupStage.DEFAULT_APP -> "Use as default SMS app"
                             SetupStage.PERMISSIONS -> "Allow SMS access"
-                            SetupStage.PAIRING -> "Connect an Agent"
+                            SetupStage.PAIRING -> "Scan pairing code"
                             SetupStage.READY -> "Ready"
                         },
                     )
@@ -545,7 +591,7 @@ private fun PairingDialog(busy: Boolean, onDismiss: () -> Unit, onPair: (String)
         title = { Text("Connect an Agent") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Paste the one-time private link created by your ConnectOnion Agent.")
+                Text("Paste the one-time link that co sms pair printed under the QR code.")
                 OutlinedTextField(
                     value = link,
                     onValueChange = { link = it },
@@ -563,33 +609,6 @@ private fun PairingDialog(busy: Boolean, onDismiss: () -> Unit, onPair: (String)
             }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-    )
-}
-
-@Composable
-private fun PairingConfirmationDialog(code: String) {
-    AlertDialog(
-        onDismissRequest = {},
-        title = { Text("Verify this phone") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Confirm that the same six digits appear in the ConnectOnion terminal.")
-                Text(
-                    text = "${code.take(3)} ${code.drop(3)}",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    "The Agent must approve this exact device key before encrypted SMS can sync.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        },
-        confirmButton = {
-            Text("Waiting for Agent approval…", color = MaterialTheme.colorScheme.primary)
-        },
     )
 }
 
@@ -675,9 +694,9 @@ private fun DeleteDialog(
 }
 
 private fun MainUiState.setupStage(): SetupStage = when {
+    pairedRecipient == null -> SetupStage.PAIRING
     !isDefaultSmsApp -> SetupStage.DEFAULT_APP
     !hasSmsPermissions -> SetupStage.PERMISSIONS
-    pairedRecipient == null -> SetupStage.PAIRING
     else -> SetupStage.READY
 }
 

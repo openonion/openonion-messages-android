@@ -18,6 +18,8 @@ import ai.openonion.messages.protocol.SmsEncryptor
 import ai.openonion.messages.sms.LocalSms
 import ai.openonion.messages.sms.SmsRepository
 import ai.openonion.messages.sms.SmsSender
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +34,7 @@ data class MainUiState(
     val pendingDeliveries: Int = 0,
     val pendingDeletions: Int = 0,
     val pairingConfirmationCode: String? = null,
+    val justConnected: Boolean = false,
     val messages: List<LocalSms> = emptyList(),
     val busy: Boolean = false,
     val error: String? = null,
@@ -42,7 +45,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = SmsRepository(application.contentResolver)
     private val sender = SmsSender(application)
     private val mutableState = MutableStateFlow(MainUiState())
-    private var pendingPairingPollStarted = false
+    private var pairingJob: Job? = null
     val state: StateFlow<MainUiState> = mutableState.asStateFlow()
 
     init {
@@ -76,27 +79,22 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     messages = messages,
                 )
             }
-            if (pendingPairing != null && !pendingPairingPollStarted) {
-                pendingPairingPollStarted = true
-                launch {
+            if (pendingPairing != null && pairingJob?.isActive != true) {
+                pairingJob = launch {
                     runCatching {
                         waitForSignedPairingActivation(
                             pendingPairing.claimToken,
                             pendingPairing.expiresAt,
                         )
-                    }.onFailure { error ->
-                        mutableState.update {
-                            it.copy(error = error.message ?: "Could not finish connecting this agent")
-                        }
-                    }
-                    pendingPairingPollStarted = false
+                    }.onFailure { error -> failPairing(error) }
                 }
             }
         }
     }
 
     fun pair(linkValue: String, onSuccess: () -> Unit) {
-        viewModelScope.launch {
+        if (pairingJob?.isActive == true) return
+        pairingJob = viewModelScope.launch {
             mutableState.update { it.copy(busy = true, error = null) }
             runCatching {
                 val link = PairingLink.parse(linkValue)
@@ -123,12 +121,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                         )
                     }
                     onSuccess()
-                    pendingPairingPollStarted = true
-                    try {
-                        waitForSignedPairingActivation(pending.claimToken, link.expiresAt)
-                    } finally {
-                        pendingPairingPollStarted = false
-                    }
+                    waitForSignedPairingActivation(pending.claimToken, link.expiresAt)
                 } else {
                     val credentials = app.container.api.claimPairing(
                         PairingClaimRequest(
@@ -141,15 +134,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     activate(credentials)
                     onSuccess()
                 }
-            }.onFailure { error ->
-                mutableState.update {
-                    it.copy(
-                        busy = false,
-                        pairingConfirmationCode = null,
-                        error = error.message ?: "Could not connect this agent",
-                    )
-                }
-            }
+            }.onFailure { error -> failPairing(error) }
+        }
+    }
+
+    /** Stops waiting for the Agent's approval; the server-side challenge simply expires. */
+    fun cancelPairing() {
+        pairingJob?.cancel()
+        pairingJob = null
+        app.container.pairingStore.clearPending()
+        mutableState.update { it.copy(busy = false, pairingConfirmationCode = null) }
+    }
+
+    fun acknowledgeConnected() {
+        mutableState.update { it.copy(justConnected = false) }
+    }
+
+    private fun failPairing(error: Throwable) {
+        if (error is CancellationException) return
+        mutableState.update {
+            it.copy(
+                busy = false,
+                pairingConfirmationCode = null,
+                error = error.message ?: "Could not connect this Agent",
+            )
         }
     }
 
@@ -178,6 +186,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 busy = false,
                 pairedRecipient = credentials.recipient,
                 pairingConfirmationCode = null,
+                justConnected = true,
             )
         }
     }

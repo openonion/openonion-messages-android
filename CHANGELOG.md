@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Pair by scanning the QR code that `co sms pair` prints, instead of pasting a
+  link. Reads both light-on-dark and dark-on-light terminal codes.
+- Connecting the Agent is now the first step; the six-digit check is a
+  full-screen page with Cancel, and success leads straight into turning on
+  SMS forwarding.
+
 ## 1.0.0 — 2026-09-01
 
 - First stable OpenOnion Messages release.
