@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+- Stop replacing the phone's texting app. The app now forwards alongside the
+  default SMS app, so sending, contacts, MMS, group chats and RCS work as
+  before. It asks for one permission, `RECEIVE_SMS`, and drops `READ_SMS`,
+  `SEND_SMS` and notifications. The local inbox, composer and per-message
+  delete are gone; the Agent inbox is the place to read and delete.
+- Phones upgrading from 1.0.0 get a prompt to choose their usual SMS app again.
+- When Android blocks SMS access for a sideloaded APK, the app explains how to
+  allow restricted settings instead of failing silently.
+
 - Pair by scanning the QR code that `co sms pair` prints, instead of pasting a
   link. Reads both light-on-dark and dark-on-light terminal codes.
 - Connecting the Agent is now the first step; the six-digit check is a

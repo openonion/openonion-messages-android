@@ -9,15 +9,11 @@ import android.provider.Telephony
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import ai.openonion.messages.data.LocalDeletionIntent
 import ai.openonion.messages.data.PairingCredentials
 import ai.openonion.messages.data.PendingPairingActivation
 import ai.openonion.messages.network.PairingClaimRequest
 import ai.openonion.messages.network.PairingLink
 import ai.openonion.messages.protocol.SmsEncryptor
-import ai.openonion.messages.sms.LocalSms
-import ai.openonion.messages.sms.SmsRepository
-import ai.openonion.messages.sms.SmsSender
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,22 +24,22 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 data class MainUiState(
-    val isDefaultSmsApp: Boolean = false,
-    val hasSmsPermissions: Boolean = false,
+    /** Left over from 1.0.0, which asked to replace the phone's texting app. */
+    val holdsSmsRole: Boolean = false,
+    val hasSmsPermission: Boolean = false,
+    /** Android refused without asking: a sideloaded app needs "Allow restricted settings" first. */
+    val smsPermissionBlocked: Boolean = false,
     val pairedRecipient: String? = null,
     val pendingDeliveries: Int = 0,
     val pendingDeletions: Int = 0,
     val pairingConfirmationCode: String? = null,
     val justConnected: Boolean = false,
-    val messages: List<LocalSms> = emptyList(),
     val busy: Boolean = false,
     val error: String? = null,
 )
 
 class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val app = application as MessagesApplication
-    private val repository = SmsRepository(application.contentResolver)
-    private val sender = SmsSender(application)
     private val mutableState = MutableStateFlow(MainUiState())
     private var pairingJob: Job? = null
     val state: StateFlow<MainUiState> = mutableState.asStateFlow()
@@ -54,7 +50,6 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun refresh() {
         viewModelScope.launch {
-            recoverConfirmedLocalDeletions()
             val now = System.currentTimeMillis() / 1000
             val pendingPairing = app.container.pairingStore.loadPending()?.let { pending ->
                 if (pending.expiresAt > now) {
@@ -64,19 +59,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     null
                 }
             }
-            val isDefault = isDefaultSmsApp()
-            val messages = if (isDefault) runCatching { repository.latest() }.getOrDefault(emptyList()) else emptyList()
             mutableState.update {
                 it.copy(
-                    isDefaultSmsApp = isDefault,
-                    hasSmsPermissions = hasSmsPermissions(),
+                    holdsSmsRole = holdsSmsRole(),
+                    hasSmsPermission = hasSmsPermission(),
                     pairedRecipient = app.container.pairingStore.load()?.recipient,
                     pairingConfirmationCode = pendingPairing?.confirmationCode,
                     pendingDeliveries = app.container.database.deliveryQueue().pendingCount(),
-                    pendingDeletions =
-                        app.container.database.deliveryQueue().pendingDeletionCount() +
-                        app.container.database.deliveryQueue().pendingLocalDeletionCount(),
-                    messages = messages,
+                    pendingDeletions = app.container.database.deliveryQueue().pendingDeletionCount(),
                 )
             }
             if (pendingPairing != null && pairingJob?.isActive != true) {
@@ -146,6 +136,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         mutableState.update { it.copy(busy = false, pairingConfirmationCode = null) }
     }
 
+    fun onSmsPermissionResult(granted: Boolean, canAskAgain: Boolean) {
+        mutableState.update { it.copy(hasSmsPermission = granted, smsPermissionBlocked = !granted && !canAskAgain) }
+    }
+
     fun acknowledgeConnected() {
         mutableState.update { it.copy(justConnected = false) }
     }
@@ -191,23 +185,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun send(recipient: String, body: String) {
-        viewModelScope.launch {
-            runCatching { sender.send(recipient.trim(), body) }
-                .onFailure { error ->
-                    mutableState.update { it.copy(error = error.message ?: "Could not send message") }
-                }
-            refresh()
-        }
-    }
-
     fun disconnect() {
         viewModelScope.launch {
             val credentials = app.container.pairingStore.load() ?: return@launch
-            if (
-                app.container.database.deliveryQueue().pendingDeletionCount() > 0 ||
-                app.container.database.deliveryQueue().pendingLocalDeletionCount() > 0
-            ) {
+            if (app.container.database.deliveryQueue().pendingDeletionCount() > 0) {
                 app.container.deliveryCoordinator.schedule()
                 mutableState.update {
                     it.copy(error = "Finish pending server deletions before disconnecting this agent")
@@ -236,43 +217,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun delete(message: LocalSms, onSuccess: () -> Unit) {
-        viewModelScope.launch {
-            mutableState.update { it.copy(busy = true, error = null) }
-            runCatching {
-                val queue = app.container.database.deliveryQueue()
-                queue.beginLocalDeletion(
-                    LocalDeletionIntent(message.id, System.currentTimeMillis()),
-                )
-                if (repository.exists(message.id) && !repository.delete(message.id)) {
-                    queue.cancelLocalDeletion(message.id)
-                    error("The local SMS could not be deleted")
-                }
-                queue.finishLocalDeletion(message.id, System.currentTimeMillis())
-                app.container.deliveryCoordinator.schedule()
-            }.onSuccess {
-                mutableState.update { it.copy(busy = false) }
-                refresh()
-                onSuccess()
-            }.onFailure { error ->
-                mutableState.update {
-                    it.copy(busy = false, error = error.message ?: "Could not delete message")
-                }
-            }
-        }
-    }
-
-    private suspend fun recoverConfirmedLocalDeletions() {
-        val queue = app.container.database.deliveryQueue()
-        queue.pendingLocalDeletions().forEach { intent ->
-            if (!repository.exists(intent.localSmsId) || repository.delete(intent.localSmsId)) {
-                queue.finishLocalDeletion(intent.localSmsId, System.currentTimeMillis())
-                app.container.deliveryCoordinator.schedule()
-            }
-        }
-    }
-
-    private fun isDefaultSmsApp(): Boolean {
+    private fun holdsSmsRole(): Boolean {
         val application = getApplication<Application>()
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             application.getSystemService(RoleManager::class.java).isRoleHeld(RoleManager.ROLE_SMS)
@@ -281,19 +226,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun hasSmsPermissions(): Boolean {
-        val application = getApplication<Application>()
-        return REQUIRED_SMS_PERMISSIONS.all {
-            ContextCompat.checkSelfPermission(application, it) == PackageManager.PERMISSION_GRANTED
-        }
-    }
+    private fun hasSmsPermission(): Boolean =
+        ContextCompat.checkSelfPermission(getApplication(), Manifest.permission.RECEIVE_SMS) ==
+            PackageManager.PERMISSION_GRANTED
 
     private companion object {
         const val PAIRING_POLL_MILLIS = 2_000L
-        val REQUIRED_SMS_PERMISSIONS = listOf(
-            Manifest.permission.RECEIVE_SMS,
-            Manifest.permission.READ_SMS,
-            Manifest.permission.SEND_SMS,
-        )
     }
 }

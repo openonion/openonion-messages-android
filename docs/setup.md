@@ -19,10 +19,18 @@ Use the APK, not the AAB, for direct installation. Verify the accompanying
 SHA-256 file and GitHub attestation as described in
 [Releasing](releasing.md), then install it on Android 8.0 or newer.
 
-Open the app, choose **Use as default SMS**, and approve only the Android
-permissions shown after the role request. Scan the QR with the system camera
-and open it in OpenOnion Messages; pasting the link under **Connect agent**
-remains a fallback.
+Open the app and tap **Scan pairing code**; pasting the link printed under the
+QR remains a fallback. After pairing, tap **Turn on SMS forwarding** and allow
+SMS access. Keep your usual texting app as the default SMS app.
+
+If Android refuses without showing a dialog, the APK was installed outside an
+app store and Android 13+ restricts SMS access for it. The app then shows
+**Open app settings**: tap ⋮ → **Allow restricted settings**, then
+**Permissions → SMS → Allow**, and come back.
+
+Upgrading from 1.0.0, which asked to be the default SMS app: the app shows
+**Switch back to your usual texting app**. Tap **Choose SMS app** and pick
+Messages again.
 
 Both the CLI and Android show six digits. Compare them before approving in the
 CLI. A mismatch means the phone key is not the key the Agent is about to trust:
@@ -57,5 +65,8 @@ credential. From the Agent, use `list_sms_devices()` and
 
 ## Important v1 limitation
 
-MMS and RCS are not supported. If your number depends on MMS, do not make this
-app the default handler on that phone yet.
+Only SMS is forwarded. MMS and RCS chat messages still reach your texting app
+normally but are not sent to the Agent. On phones that block background
+start-up (some Xiaomi, Huawei and OPPO builds), allow the app to auto-start, and
+do not force-stop it: Android stops delivering SMS to a force-stopped app until
+it is opened again.

@@ -5,16 +5,14 @@ the storage service receives ciphertext rather than SMS content.
 
 ## Data on the phone
 
-Android's system SMS provider stores the sender, body, timestamps, and read
-state so the owner can use the local inbox. OpenOnion Messages also stores a
+The phone's own texting app keeps the SMS inbox; OpenOnion Messages cannot
+read it. When a new SMS arrives, the app encrypts it immediately and stores a
 delivery queue containing only recipient Agent addresses, random message IDs,
 ciphertext, retry state, and timestamps. The paired device credential is
 encrypted with Android Keystore. App backups are disabled.
 
 Queued ciphertext is deleted from the app database after `oo-api` confirms
-durable storage. A small local receipt then associates the Android SMS row with
-its server ciphertext identifier so an owner-confirmed deletion can be applied
-to both copies. The receipt contains no sender or body.
+durable storage. The plaintext is never written to the app's storage.
 
 ## Data sent to oo-api
 

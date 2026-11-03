@@ -20,6 +20,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.unit.dp
+import ai.openonion.messages.MainUiState
 import ai.openonion.messages.ui.theme.OpenOnionMessagesTheme
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
@@ -83,6 +84,38 @@ class PairingScreensRenderTest {
         )
     }.also {
         compose.onNodeWithText("0x10e6…5508").assertIsDisplayed()
+    }
+
+    @Test
+    fun askForSms() = home("5-allow-sms", MainUiState(pairedRecipient = agent)).also {
+        compose.onNodeWithText("Allow SMS access").assertIsDisplayed()
+    }
+
+    @Test
+    fun smsBlockedBySideloadRestriction() =
+        home("6-sms-blocked", MainUiState(pairedRecipient = agent, smsPermissionBlocked = true)).also {
+            compose.onNodeWithText("Open app settings").assertIsDisplayed()
+            compose.onNodeWithText("Go to Permissions → SMS → Allow").assertIsDisplayed()
+        }
+
+    @Test
+    fun forwarding() = home("7-forwarding", MainUiState(pairedRecipient = agent, hasSmsPermission = true)).also {
+        compose.onNodeWithText("Keep texting as usual").assertIsDisplayed()
+        compose.onNodeWithText("Texts still arrive in your Messages app").assertIsDisplayed()
+    }
+
+    @Test
+    fun upgradedFromDefaultSmsApp() = home(
+        "8-give-back",
+        MainUiState(pairedRecipient = agent, hasSmsPermission = true, holdsSmsRole = true),
+    ).also {
+        compose.onNodeWithText("Choose SMS app").assertIsDisplayed()
+    }
+
+    private val agent = "0x10e68f6dff39ab1c50cc48ea1c74e7fd6ce7269aa6e8123829b344e57d005508"
+
+    private fun home(name: String, state: MainUiState) = shot(name) {
+        HomeScreen(state, onScan = {}, onPaste = {}, onAllowSms = {}, onChooseTextingApp = {}, onDisconnect = {})
     }
 
     private fun shot(name: String, content: @Composable () -> Unit) {
